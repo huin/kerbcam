@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Machicamical", "Machicamical\Machicamical.csproj", "{ACC76DF4-A0A5-4BC5-91B4-EF5AF6D22B59}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{ACC76DF4-A0A5-4BC5-91B4-EF5AF6D22B59}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ACC76DF4-A0A5-4BC5-91B4-EF5AF6D22B59}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ACC76DF4-A0A5-4BC5-91B4-EF5AF6D22B59}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ACC76DF4-A0A5-4BC5-91B4-EF5AF6D22B59}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(MonoDevelopProperties) = preSolution
+		StartupItem = Machicamical\Machicamical.csproj
+	EndGlobalSection
+EndGlobal
