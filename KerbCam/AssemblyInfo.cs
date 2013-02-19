@@ -1,7 +1,7 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-[assembly: AssemblyTitle("Machicamical")]
+[assembly: AssemblyTitle("KerbCam")]
 [assembly: AssemblyDescription("Assistant camera pathing tool to assist with filming more elaborate KSP footage.")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]

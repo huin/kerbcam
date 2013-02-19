@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Machicamical", "Machicamical\Machicamical.csproj", "{ACC76DF4-A0A5-4BC5-91B4-EF5AF6D22B59}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "kerbcam", "KerbCam\kerbcam.csproj", "{ACC76DF4-A0A5-4BC5-91B4-EF5AF6D22B59}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +15,6 @@ Global
 		{ACC76DF4-A0A5-4BC5-91B4-EF5AF6D22B59}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
-		StartupItem = Machicamical\Machicamical.csproj
+		StartupItem = KerbCam\kerbcam.csproj
 	EndGlobalSection
 EndGlobal

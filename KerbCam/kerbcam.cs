@@ -5,20 +5,20 @@ using KSP.IO;
 // Plugin startup taken from:
 // http://forum.kerbalspaceprogram.com/showthread.php/43027
 
-namespace Machicamical {
+namespace KerbCam {
 	
 	// Class purely for the purpose for injecting the plugin.
-	public class MachicamicalEntry : KSP.Testing.UnitTest
+	public class Bootstrap : KSP.Testing.UnitTest
 	{
-		public MachicamicalEntry()
+		public Bootstrap()
 		{
-			var gameObject = new GameObject("Machicamical", typeof(Machicamical));
+			var gameObject = new GameObject("KerbCam", typeof(KerbCam));
 			UnityEngine.Object.DontDestroyOnLoad(gameObject);
 		}
 	}
 	
 	// Plugin behaviour class.
-	public class Machicamical : MonoBehaviour
+	public class KerbCam : MonoBehaviour
 	{
 		private bool isEnabled = false;
 		
