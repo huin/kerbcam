@@ -91,10 +91,8 @@ namespace KerbCam {
 				Debug.Log(FlightCamera.fetch.transform.forward);
 				Debug.Log(FlightCamera.fetch.transform.rotation);
 				Debug.Log(FlightCamera.fetch.camera);
-				Debug.Log(FlightCamera.fetch.autoMode);
 				Debug.Log(FlightCamera.fetch.endDirection);
 				Debug.Log(FlightCamera.fetch.FoRMode);
-				Debug.Log(FlightCamera.fetch.mode);
 				Debug.Log(FlightCamera.fetch.sharpness);
 			} else if (ev.Equals(KEY_PATH_TOGGLE_WINDOW)) {
 				mainWindow.ToggleWindow();
