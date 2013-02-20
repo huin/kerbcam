@@ -6,18 +6,20 @@ namespace KerbCam
 {
 	public class SimpleCamPath
 	{
-		private string name = "";
 		private int keyIndex = 0;
 		private AnimationCurve hdgCurve = new AnimationCurve();
 		private AnimationCurve pitchCurve = new AnimationCurve();
 		private AnimationCurve distanceCurve = new AnimationCurve();
-
 		private bool isRunning = false;
-		private float curTime;
+		private float curTime = 0.0F;
 
-		public SimpleCamPath (String name)
+		private string name;
+		private FlightCamera.Modes cameraMode;
+
+		public SimpleCamPath(String name, FlightCamera.Modes cameraMode)
 		{
 			this.name = name;
+			this.cameraMode = cameraMode;
 		}
 
 		public bool IsRunning {
@@ -27,6 +29,10 @@ namespace KerbCam
 		public string Name {
 			get { return name; }
 			set { this.name = value; }
+		}
+
+		public FlightCamera.Modes CameraMode {
+			get { return cameraMode; }
 		}
 
 		public int NumKeys {
@@ -46,7 +52,7 @@ namespace KerbCam
 
 		public float TimeAt(int index)
 		{
-			if (index > hdgCurve.length) {
+			if (index >= hdgCurve.length) {
 				return -1;
 			}
 
@@ -55,7 +61,7 @@ namespace KerbCam
 
 		public void MoveCameraToKey(int index)
 		{
-			if (index > hdgCurve.length) {
+			if (index >= hdgCurve.length) {
 				return;
 			}
 			SetCamera(hdgCurve[index].value,
@@ -65,7 +71,7 @@ namespace KerbCam
 
 		public void RemoveKey(int index)
 		{
-			if (index > hdgCurve.length) {
+			if (index >= hdgCurve.length) {
 				return;
 			}
 			hdgCurve.RemoveKey(index);
@@ -75,14 +81,21 @@ namespace KerbCam
 
 		public void ToggleRunning ()
 		{
-			isRunning = !isRunning;
-			curTime = 0F;
+			if (!isRunning)
+				StartRunning();
+			else
+				StopRunning();
 		}
 		
 		public void StartRunning()
 		{
+			if (hdgCurve.length == 0) {
+				return;
+			}
+
 			isRunning = true;
 			curTime = 0F;
+			UpdateCamera();
 		}
 		
 		public void StopRunning()
@@ -96,10 +109,10 @@ namespace KerbCam
 				return;
 
 			curTime += Time.deltaTime;
-			if (curTime > (keyIndex - 1))
-			{
-				StopRunning ();
-				return;
+			var maxTime = hdgCurve[hdgCurve.length - 1].time;
+			if (curTime >= maxTime) {
+				curTime = maxTime;
+				StopRunning();
 			}
 
 			UpdateCamera();
@@ -117,9 +130,10 @@ namespace KerbCam
 			return new SimpleCamPathEditor(this);
 		}
 
-		private static void SetCamera(float hdg, float pitch, float distance)
+		private void SetCamera(float hdg, float pitch, float distance)
 		{
 			var cam = FlightCamera.fetch;
+			cam.mode = cameraMode;
 			cam.camHdg = hdg;
 			cam.camPitch = pitch;
 			cam.SetDistance(distance);
@@ -145,7 +159,7 @@ namespace KerbCam
 		public void DoGUI()
 		{
 			GUILayout.BeginVertical();
-			GUILayout.Label("Simple camera path");
+			GUILayout.Label("Simple camera path [" + path.CameraMode + "]");
 			
 			GUILayout.BeginHorizontal();
 			GUILayout.Label("Name:");
@@ -153,16 +167,15 @@ namespace KerbCam
 			GUILayout.EndHorizontal();
 
 			scrollPosition = GUILayout.BeginScrollView(scrollPosition, false, true);
-			var numKeys = path.NumKeys;
-			for (int i = 0; i < numKeys; i++) {
+			for (int i = 0; i < path.NumKeys; i++) {
 				GUILayout.BeginHorizontal();
-				//GUILayout.Label(string.Format("#{0} @{1}s", i, path.TimeAt(i)));
-				if (GUILayout.Button("View")) {
-					path.MoveCameraToKey(i);
-				}
-				if (GUILayout.Button("X")) {
+				if (GUILayout.Button("X", C.DeleteButtonStyle)) {
 					path.RemoveKey(i);
 				}
+				if (GUILayout.Button("View", C.CompactButtonStyle)) {
+					path.MoveCameraToKey(i);
+				}
+				GUILayout.Label(string.Format("#{0} @{1}s", i, path.TimeAt(i)), C.CompactLabelStyle);
 				GUILayout.EndHorizontal();
 			}
 			GUILayout.EndScrollView();

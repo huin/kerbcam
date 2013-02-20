@@ -28,6 +28,7 @@ namespace KerbCam {
 		// TODO: Custom keybindings.
 		private Event KEY_PATH_TOGGLE_RUNNING = Event.KeyboardEvent(KeyCode.Home.ToString());
 		private Event KEY_PATH_ADD_POINT = Event.KeyboardEvent(KeyCode.Insert.ToString());
+		private Event KEY_PATH_TOGGLE_WINDOW = Event.KeyboardEvent(KeyCode.F8.ToString());
 
 		// TODO: Remove this logging thing.
 		private Event KEY_DEBUG_LOG = Event.KeyboardEvent(KeyCode.F7.ToString());
@@ -90,7 +91,12 @@ namespace KerbCam {
 				Debug.Log(FlightCamera.fetch.transform.forward);
 				Debug.Log(FlightCamera.fetch.transform.rotation);
 				Debug.Log(FlightCamera.fetch.camera);
-			} else if (ev.Equals(Event.KeyboardEvent("F8"))) {
+				Debug.Log(FlightCamera.fetch.autoMode);
+				Debug.Log(FlightCamera.fetch.endDirection);
+				Debug.Log(FlightCamera.fetch.FoRMode);
+				Debug.Log(FlightCamera.fetch.mode);
+				Debug.Log(FlightCamera.fetch.sharpness);
+			} else if (ev.Equals(KEY_PATH_TOGGLE_WINDOW)) {
 				mainWindow.ToggleWindow();
 			}
 		}
@@ -100,11 +106,22 @@ namespace KerbCam {
 	{
 		public SimpleCamPath selectedPath;
 		public List<SimpleCamPath> paths = new List<SimpleCamPath>();
+		public int numCreatedPaths = 0;
 
 		public void Stop ()
 		{
 			if (selectedPath != null)
 				selectedPath.StopRunning();
+		}
+
+		public FlightCamera.Modes GetCurrentCameraMode()
+		{
+			var cam = FlightCamera.fetch;
+			if (cam.mode == FlightCamera.Modes.AUTO) {
+				return cam.autoMode;
+			} else {
+				return cam.mode;
+			}
 		}
 	}
 
@@ -115,6 +132,7 @@ namespace KerbCam {
 		private SimpleCamPathEditor pathEditor = null;
 		private Rect windowPos;
 		private State state;
+		private Vector2 pathListScroll = new Vector2();
 
 		public MainWindow(State state)
 		{
@@ -135,6 +153,7 @@ namespace KerbCam {
 		{
 			isWindowOpen = true;
 			RenderingManager.AddToPostDrawQueue(3, new Callback(DrawGUI));
+			GUI.FocusWindow(WINDOW_ID);
 		}
 
 		public void HideWindow()
@@ -154,32 +173,57 @@ namespace KerbCam {
 
 		private void DoGUI(int windowID)
 		{
-			if (state.selectedPath != null) {
-				if (pathEditor == null || !pathEditor.IsForPath(state.selectedPath)) {
-					pathEditor = state.selectedPath.MakeEditor();
-					windowPos.width = 400;
+			try {
+				C.InitGUIConstants();
+				
+				if (state.selectedPath != null) {
+					if (pathEditor == null || !pathEditor.IsForPath(state.selectedPath)) {
+						pathEditor = state.selectedPath.MakeEditor();
+						windowPos.width = 500;
+					}
+				} else {
+					pathEditor = null;
+					windowPos.width = 200;
 				}
-			} else {
-				pathEditor = null;
-				windowPos.width = 200;
+
+				GUILayout.BeginHorizontal(); // BEGIN left/right panes
+
+				GUILayout.BeginVertical(); // BEGIN main controls
+
+				if (GUILayout.Button("New simple path")) {
+					state.numCreatedPaths++;
+					state.selectedPath = new SimpleCamPath(
+						"Path #" + state.numCreatedPaths,
+						state.GetCurrentCameraMode());
+					state.paths.Add(state.selectedPath);
+				}
+
+				// Scroll list allowing selection of an existing path.
+				pathListScroll = GUILayout.BeginScrollView(pathListScroll, false, true);
+				foreach (var path in state.paths) {
+					if (GUILayout.Toggle(path == state.selectedPath, path.Name)) {
+						if (state.selectedPath != path) {
+							state.selectedPath.StopRunning();
+							state.selectedPath = path;
+						}
+					}
+				}
+				GUILayout.EndScrollView();
+
+				GUILayout.EndVertical(); // END main controls
+
+				// Path editor lives in right-hand-frame.
+				if (pathEditor != null) {
+					pathEditor.DoGUI();
+				}
+
+				GUILayout.EndHorizontal(); // END left/right panes
+
+				GUI.DragWindow(new Rect(0, 0, 10000, 20));
+			} catch (Exception e) {
+				Debug.LogError("Caught exception in DoGUI: " + e);
+				throw;
 			}
-
-			GUILayout.BeginHorizontal(); // BEGIN left/right panes
-
-			GUILayout.BeginVertical(); // BEGIN main controls
-
-			if (GUILayout.Button("Create new simple path")) {
-				state.selectedPath = new SimpleCamPath("");
-			}
-			GUILayout.EndVertical(); // END main controls
-
-			if (pathEditor != null) {
-				pathEditor.DoGUI();
-			}
-
-			GUILayout.EndHorizontal(); // END left/right panes
-
-			GUI.DragWindow(new Rect(0, 0, 10000, 20));
 		}
 	}
 }
