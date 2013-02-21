@@ -6,14 +6,21 @@ namespace KerbCam
 {
 	public class InterpolatorCurve<T>
 	{
-		private struct Frame {
+		public struct Frame
+        {
 			public float time;
 			public T value;
 
-			public Frame(float time, T value) {
+			public Frame(float time, T value)
+            {
 				this.time = time;
 				this.value = value;
 			}
+
+            public override string ToString()
+            {
+                return string.Format("Frame({0}, {1})", time, value);
+            }
 		}
 
 		// frames is maintained sorted on Frame.time.
@@ -21,36 +28,73 @@ namespace KerbCam
 
 		public InterpolatorCurve()
 		{
-			frames = new List<Frame>();
+            frames = new List<Frame>();
 		}
 
-		public void AddKey(float time, T value) {
-			int insertIndex = findIndex(time);
-			frames.Insert(insertIndex, new Frame(time, value));
+        public float TimeAt(int index)
+        {
+            return frames[index].time;
+        }
+
+		public void AddKey(float time, T value)
+        {
+            Frame frame = new Frame(time, value);
+            if (frames.Count == 0)
+            {
+                frames.Add(frame);
+            }
+            else
+            {
+                frames.Insert(FindInsertIndex(time), frame);
+            }
 
 		}
 
-		protected int findIndex(float time) {
-			return binSearchIndex(time, 0, frames.Count);
-		}
+        private int FindInsertIndex(float time)
+        {
+            var v = new SortedList<float, T>();
 
-		// binSearchIndex returns the highest index such that
-		// frames[index].time < time.
-		protected int binSearchIndex(float time, int lower, int upper)
+            if (frames.Count == 0)
+            {
+                return 0;
+            }
+            int lowerIndex = FindLowerIndex(time);
+            return lowerIndex + 1;
+        }
+
+        // FindIndex returns the highest index such that values[index].time <= time.
+        // Returns -1 if time < values[0].time.
+        public int FindLowerIndex(float time)
+        {
+            return BinSearchFindLowerIndex(time, 0, frames.Count - 1);
+        }
+
+        private int BinSearchFindLowerIndex(float time, int lower, int upper)
 		{
-			if (lower <= upper) {
-				return lower;
-			}
+            float upperTime = frames[upper].time;
+            if (time >= upperTime)
+                return upper;
 
-			int midIndex = lower + (upper - lower) / 2;
-			float midTime = frames[midIndex].time;
-			if (time < midTime) {
-				return binSearchIndex(time, lower, midIndex);
-			} else if (time > midTime) {
-				return binSearchIndex(time, midIndex, upper);
-			} else { // (midTime == time)
-				return upper;
-			}
+            float lowerTime = frames[lower].time;
+            if (time < lowerTime)
+                return lower - 1;
+            else if (upper - lower == 1)
+                return lower;
+
+            int midIndex = lower + (upper - lower) / 2;
+            float midTime = frames[midIndex].time;
+            if (time == midTime)
+            {
+                return midIndex;
+            }
+            else if (time < midTime)
+            {
+                return BinSearchFindLowerIndex(time, lower, midIndex);
+            }
+            else // (time > midTime)
+            {
+                return BinSearchFindLowerIndex(time, midIndex, upper);
+            }
 		}
 	}
 }
