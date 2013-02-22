@@ -29,9 +29,6 @@
     <ConsolePause>False</ConsolePause>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="nunit.framework">
-      <HintPath>..\packages\NUnit.2.6.2\lib\nunit.framework.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="Assembly-CSharp">
       <HintPath>C:\Games\KSP - Dev\KSP_Data\Managed\Assembly-CSharp.dll</HintPath>
@@ -46,9 +43,6 @@
     <Compile Include="KerbCamCore.cs" />
     <Compile Include="CommonConstants.cs" />
     <Compile Include="InterpolatorCurve.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
