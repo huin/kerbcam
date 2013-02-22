@@ -4,6 +4,15 @@ using KerbCam;
 
 namespace KerbCamTest
 {
+    public class FakeValueInterpolator : InterpolatorCurve<string>.IValueInterpolator
+    {
+        public string Evaluate(string a, string b, float t)
+        {
+            return string.Format("{0} {1} {2:0.0}",
+                a, b, t);
+        }
+    }
+
     [TestClass]
     public class InterpolatorCurveTest
     {
@@ -12,7 +21,7 @@ namespace KerbCamTest
         [TestInitialize]
         public void SetUp()
         {
-            ic = new InterpolatorCurve<String>();
+            ic = new InterpolatorCurve<String>(new FakeValueInterpolator());
             ic.AddKey(0f, "zero");
             ic.AddKey(1f, "one");
             ic.AddKey(2f, "two");
@@ -32,7 +41,6 @@ namespace KerbCamTest
             ic.AddKey(0.5f, "point five");
             Assert.AreEqual(1, ic.FindLowerIndex(0.5f));
             Assert.AreEqual(1, ic.FindLowerIndex(0.6f));
-            
         }
 
         [TestMethod]
@@ -55,6 +63,25 @@ namespace KerbCamTest
             Assert.AreEqual(2, ic.FindLowerIndex(2.0f));
             Assert.AreEqual(2, ic.FindLowerIndex(2.5f));
             Assert.AreEqual(2, ic.FindLowerIndex(3.0f));
+        }
+
+        [TestMethod]
+        public void TestEvaluate()
+        {
+            Assert.AreEqual("zero", ic.Evaluate(-1f));
+            Assert.AreEqual("zero", ic.Evaluate(-0.5f));
+            Assert.AreEqual("zero one 0.0", ic.Evaluate(0.0f));
+            Assert.AreEqual("zero one 0.2", ic.Evaluate(0.2f));
+            Assert.AreEqual("one two 0.0", ic.Evaluate(1.0f));
+            Assert.AreEqual("one two 0.3", ic.Evaluate(1.3f));
+            Assert.AreEqual("two", ic.Evaluate(2.0f));
+            Assert.AreEqual("two", ic.Evaluate(2.4f));
+
+            // Testing 0 to 1 values between frames that are != 1 apart.
+            ic.AddKey(4f, "four");
+            Assert.AreEqual("two four 0.4", ic.Evaluate(2.2f));
+            Assert.AreEqual("four", ic.Evaluate(4.0f));
+            Assert.AreEqual("four", ic.Evaluate(4.4f));
         }
     }
 }
