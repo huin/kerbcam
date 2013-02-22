@@ -15,11 +15,33 @@ namespace KerbCam
 
 		private string name;
 		private FlightCamera.Modes cameraMode;
+        private FoRModes forMode;
 
-		public SimpleCamPath(String name, FlightCamera.Modes cameraMode)
+        public static SimpleCamPath CreateForCurrentCameraState(String name)
+        {
+            FlightCamera cam = FlightCamera.fetch;
+            FlightCamera.Modes camMode;
+
+            if (cam.mode == FlightCamera.Modes.AUTO)
+            {
+                camMode = cam.autoMode;
+            }
+            else
+            {
+                camMode = cam.mode;
+            }
+
+            return new SimpleCamPath(name, camMode, cam.FoRMode);
+        }
+
+		public SimpleCamPath(
+            String name,
+            FlightCamera.Modes cameraMode,
+            FoRModes forMode)
 		{
 			this.name = name;
 			this.cameraMode = cameraMode;
+            this.forMode = forMode;
 		}
 
 		public bool IsRunning {
@@ -34,6 +56,10 @@ namespace KerbCam
 		public FlightCamera.Modes CameraMode {
 			get { return cameraMode; }
 		}
+
+        public FoRModes ForMode {
+            get { return forMode; }
+        }
 
 		public int NumKeys {
 			get { return hdgCurve.length; }
@@ -134,6 +160,7 @@ namespace KerbCam
 		{
 			var cam = FlightCamera.fetch;
 			cam.mode = cameraMode;
+            cam.FoRMode = forMode;
 			cam.camHdg = hdg;
 			cam.camPitch = pitch;
 			cam.SetDistance(distance);
@@ -159,7 +186,9 @@ namespace KerbCam
 		public void DoGUI()
 		{
 			GUILayout.BeginVertical();
-			GUILayout.Label("Simple camera path [" + path.CameraMode + "]");
+			GUILayout.Label(string.Format(
+                "Simple camera path [{0} {1}]",
+                path.CameraMode, path.ForMode));
 			
 			GUILayout.BeginHorizontal();
 			GUILayout.Label("Name:");

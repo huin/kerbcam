@@ -82,7 +82,7 @@ namespace KerbCam {
 
 			if (ev.Equals(KEY_DEBUG_LOG)) {
 				// TODO: Find out if we can use these for other pathing techniques.
-				Debug.Log(FlightCamera.fetch.transform.localPosition);
+				/*Debug.Log(FlightCamera.fetch.transform.localPosition);
 				Debug.Log(FlightCamera.fetch.transform.localRotation);
 				Debug.Log(FlightCamera.fetch.transform.localScale);
 				Debug.Log(FlightCamera.fetch.transform.right);
@@ -93,7 +93,19 @@ namespace KerbCam {
 				Debug.Log(FlightCamera.fetch.camera);
 				Debug.Log(FlightCamera.fetch.endDirection);
 				Debug.Log(FlightCamera.fetch.FoRMode);
-				Debug.Log(FlightCamera.fetch.sharpness);
+				Debug.Log(FlightCamera.fetch.sharpness);*/
+                var cam = FlightCamera.fetch;
+                Debug.Log(string.Format(
+                    "pivotRotation={0} endDirection={1} ",
+                    cam.pivotRotation, cam.endDirection));
+                Debug.Log("Cameras:");
+                foreach (var c in Camera.allCameras)
+                {
+                    string suffix = (c == Camera.current ? "(current)" : "");
+                    Debug.Log(string.Format(
+                        "{0} name={1} tag={2} enabled={3} transform={4} depth={5} object id={6}",
+                        suffix, c.name, c.tag, c.enabled, c.transform, c.depth, c.GetInstanceID()));
+                }
 			} else if (ev.Equals(KEY_PATH_TOGGLE_WINDOW)) {
 				mainWindow.ToggleWindow();
 			}
@@ -110,16 +122,6 @@ namespace KerbCam {
 		{
 			if (selectedPath != null)
 				selectedPath.StopRunning();
-		}
-
-		public FlightCamera.Modes GetCurrentCameraMode()
-		{
-			var cam = FlightCamera.fetch;
-			if (cam.mode == FlightCamera.Modes.AUTO) {
-				return cam.autoMode;
-			} else {
-				return cam.mode;
-			}
 		}
 	}
 
@@ -190,9 +192,8 @@ namespace KerbCam {
 
 				if (GUILayout.Button("New simple path")) {
 					state.numCreatedPaths++;
-					state.selectedPath = new SimpleCamPath(
-						"Path #" + state.numCreatedPaths,
-						state.GetCurrentCameraMode());
+                    state.selectedPath = SimpleCamPath.CreateForCurrentCameraState(
+						"Path #" + state.numCreatedPaths);
 					state.paths.Add(state.selectedPath);
 				}
 
