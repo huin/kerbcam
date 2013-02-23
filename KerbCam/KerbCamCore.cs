@@ -5,224 +5,220 @@ using KSP.IO;
 
 
 namespace KerbCam {
-	
-	// Class purely for the purpose for injecting the plugin.
-	// Plugin startup taken from:
-	// http://forum.kerbalspaceprogram.com/showthread.php/43027
-	public class Bootstrap : KSP.Testing.UnitTest
-	{
-		public Bootstrap()
-		{
-			var gameObject = new GameObject("KerbCam", typeof(KerbCam));
-			UnityEngine.Object.DontDestroyOnLoad(gameObject);
-		}
-	}
-	
-	// Plugin behaviour class.
-	public class KerbCam : MonoBehaviour
-	{
-		private bool isEnabled = false;
-		private MainWindow mainWindow;
-		private State state;
 
-		// TODO: Custom keybindings.
-		private Event KEY_PATH_TOGGLE_RUNNING = Event.KeyboardEvent(KeyCode.Home.ToString());
-		private Event KEY_PATH_ADD_POINT = Event.KeyboardEvent(KeyCode.Insert.ToString());
-		private Event KEY_PATH_TOGGLE_WINDOW = Event.KeyboardEvent(KeyCode.F8.ToString());
+    // Class purely for the purpose for injecting the plugin.
+    // Plugin startup taken from:
+    // http://forum.kerbalspaceprogram.com/showthread.php/43027
+    public class Bootstrap : KSP.Testing.UnitTest {
+        public Bootstrap() {
+            var gameObject = new GameObject("KerbCam", typeof(KerbCam));
+            UnityEngine.Object.DontDestroyOnLoad(gameObject);
+        }
+    }
 
-		// TODO: Remove this logging thing.
-		private Event KEY_DEBUG_LOG = Event.KeyboardEvent(KeyCode.F7.ToString());
-		
-		public void OnLevelWasLoaded ()
-		{
-			isEnabled = (FlightGlobals.fetch == null || FlightGlobals.ActiveVessel == null)
-				&& HighLogic.LoadedScene == GameScenes.FLIGHT;
+    // Plugin behaviour class.
+    public class KerbCam : MonoBehaviour {
+        private bool isEnabled = false;
+        private MainWindow mainWindow;
+        private State state;
 
-			if (!isEnabled) {
-				if (state != null) {
-					state.Stop();
-				}
-				if (mainWindow != null) {
-					mainWindow.HideWindow();
-				}
-			} else {
-				if (state == null) {
-					state = new State();
-				}
-				if (mainWindow == null) {
-					mainWindow = new MainWindow(state);
-				}
-			}
-		}
-		
-		public void Update()
-		{
-			if (!isEnabled)
-				return;
+        // TODO: Custom keybindings.
+        private Event KEY_PATH_TOGGLE_RUNNING = Event.KeyboardEvent(KeyCode.Home.ToString());
+        private Event KEY_PATH_ADD_POINT = Event.KeyboardEvent(KeyCode.Insert.ToString());
+        private Event KEY_PATH_TOGGLE_WINDOW = Event.KeyboardEvent(KeyCode.F8.ToString());
 
-			if (state.selectedPath != null)
-				state.selectedPath.Update();
-		}
-		
-		public void OnGUI()
-		{
-			if (!isEnabled)
-				return;
+        // TODO: Remove this logging thing.
+        private Event KEY_DEBUG_LOG = Event.KeyboardEvent(KeyCode.F7.ToString());
 
-			var ev = Event.current;
+        public void OnLevelWasLoaded() {
+            isEnabled = (FlightGlobals.fetch == null || FlightGlobals.ActiveVessel == null)
+                && HighLogic.LoadedScene == GameScenes.FLIGHT;
 
-			if (state.selectedPath != null) {
-				// Events that require an active path.
-				if (ev.Equals(KEY_PATH_ADD_POINT)) {
-					state.selectedPath.AddKey();
-				} else if (ev.Equals(KEY_PATH_TOGGLE_RUNNING)) {
-					state.selectedPath.ToggleRunning();
-				}
-			}
-
-			if (ev.Equals(KEY_DEBUG_LOG)) {
-				// TODO: Find out if we can use these for other pathing techniques.
-				/*Debug.Log(FlightCamera.fetch.transform.localPosition);
-				Debug.Log(FlightCamera.fetch.transform.localRotation);
-				Debug.Log(FlightCamera.fetch.transform.localScale);
-				Debug.Log(FlightCamera.fetch.transform.right);
-				Debug.Log(FlightCamera.fetch.transform.up);
-				Debug.Log(FlightCamera.fetch.targetDirection);
-				Debug.Log(FlightCamera.fetch.transform.forward);
-				Debug.Log(FlightCamera.fetch.transform.rotation);
-				Debug.Log(FlightCamera.fetch.camera);
-				Debug.Log(FlightCamera.fetch.endDirection);
-				Debug.Log(FlightCamera.fetch.FoRMode);
-				Debug.Log(FlightCamera.fetch.sharpness);*/
-                var cam = FlightCamera.fetch;
-                Debug.Log(string.Format(
-                    "pivotRotation={0} endDirection={1} ",
-                    cam.pivotRotation, cam.endDirection));
-                Debug.Log("Cameras:");
-                foreach (var c in Camera.allCameras)
-                {
-                    string suffix = (c == Camera.current ? "(current)" : "");
-                    Debug.Log(string.Format(
-                        "{0} name={1} tag={2} enabled={3} transform={4} depth={5} object id={6}",
-                        suffix, c.name, c.tag, c.enabled, c.transform, c.depth, c.GetInstanceID()));
+            if (!isEnabled) {
+                if (state != null) {
+                    state.Stop();
                 }
-			} else if (ev.Equals(KEY_PATH_TOGGLE_WINDOW)) {
-				mainWindow.ToggleWindow();
-			}
-		}
-	}
+                if (mainWindow != null) {
+                    mainWindow.HideWindow();
+                }
+            } else {
+                if (state == null) {
+                    state = new State();
+                }
+                if (mainWindow == null) {
+                    mainWindow = new MainWindow(state);
+                }
+            }
+        }
 
-	class State
-	{
-		public SimpleCamPath selectedPath;
-		public List<SimpleCamPath> paths = new List<SimpleCamPath>();
-		public int numCreatedPaths = 0;
+        public void Update() {
+            if (!isEnabled)
+                return;
 
-		public void Stop ()
-		{
-			if (selectedPath != null)
-				selectedPath.StopRunning();
-		}
-	}
+            if (state.selectedPath != null)
+                state.selectedPath.Update();
+        }
 
-	class MainWindow
-	{
-		private const int WINDOW_ID = 73469086; // xkcd/221 compliance.
-		private bool isWindowOpen = false;
-		private SimpleCamPathEditor pathEditor = null;
-		private Rect windowPos;
-		private State state;
-		private Vector2 pathListScroll = new Vector2();
+        public void OnGUI() {
+            if (!isEnabled)
+                return;
 
-		public MainWindow(State state)
-		{
-			this.state = state;
-			windowPos = new Rect(Screen.width / 2, Screen.height / 2, 200, 300);
-		}
+            try {
 
-		public void ToggleWindow()
-		{
-			if (isWindowOpen) {
-				HideWindow();
-			} else {
-				ShowWindow();
-			}
-		}
+                var ev = Event.current;
 
-		public void ShowWindow()
-		{
-			isWindowOpen = true;
-			RenderingManager.AddToPostDrawQueue(3, new Callback(DrawGUI));
-			GUI.FocusWindow(WINDOW_ID);
-		}
+                if (state.selectedPath != null) {
+                    // Events that require an active path.
+                    if (ev.Equals(KEY_PATH_ADD_POINT)) {
+                        state.selectedPath.AddKey(FlightCamera.fetch.transform);
+                    } else if (ev.Equals(KEY_PATH_TOGGLE_RUNNING)) {
+                        state.selectedPath.ToggleRunning(FlightCamera.fetch);
+                    }
+                }
 
-		public void HideWindow()
-		{
-			isWindowOpen = false;
-			RenderingManager.RemoveFromPostDrawQueue(3, new Callback(DrawGUI));
-		}
+                if (ev.Equals(KEY_DEBUG_LOG)) {
+                    // TODO: Find out if we can use these for other pathing techniques.
+                    /*Debug.Log(FlightCamera.fetch.transform.localPosition);
+                    Debug.Log(FlightCamera.fetch.transform.localRotation);
+                    Debug.Log(FlightCamera.fetch.transform.localScale);
+                    Debug.Log(FlightCamera.fetch.transform.right);
+                    Debug.Log(FlightCamera.fetch.transform.up);
+                    Debug.Log(FlightCamera.fetch.targetDirection);
+                    Debug.Log(FlightCamera.fetch.transform.forward);
+                    Debug.Log(FlightCamera.fetch.transform.rotation);
+                    Debug.Log(FlightCamera.fetch.camera);
+                    Debug.Log(FlightCamera.fetch.endDirection);
+                    Debug.Log(FlightCamera.fetch.FoRMode);
+                    Debug.Log(FlightCamera.fetch.sharpness);*/
+                    Transform trn = FlightCamera.fetch.transform;
 
-		private void DrawGUI()
-		{
-			GUI.skin = HighLogic.Skin;
-			windowPos = GUILayout.Window(
-				WINDOW_ID, windowPos, DoGUI, "KerbCam",
-				GUILayout.MinWidth(200),
-				GUILayout.MinHeight(300));
-		}
+                    int i = 0;
+                    for (var t = trn; t != null; t = t.parent, i++) {
+                        Debug.Log(string.Format(
+                            "[{0}] position={1} rotation={2} localPosition={3} localRotation={4}" +
+                            " right={5} up={6} forward={7} localScale={8} localEulerAngles={9}",
+                            i, t.position, t.rotation, t.localPosition, t.localRotation,
+                            t.right, t.up, t.forward, t.localScale, t.localEulerAngles));
+                    }
+                    /*Debug.Log("Cameras:");
+                    foreach (var c in Camera.allCameras)
+                    {
+                        string suffix = (c == Camera.current ? "(current)" : "");
+                        Debug.Log(string.Format(
+                            "{0} name={1} tag={2} enabled={3} transform={4} depth={5} object id={6}",
+                            suffix, c.name, c.tag, c.enabled, c.transform, c.depth, c.GetInstanceID()));
+                    }*/
+                } else if (ev.Equals(KEY_PATH_TOGGLE_WINDOW)) {
+                    mainWindow.ToggleWindow();
+                }
+            } catch (Exception e) {
+                Debug.LogError(e.ToString() + "\n" +  e.StackTrace);
+            }
+        }
+    }
 
-		private void DoGUI(int windowID)
-		{
-			try {
-				C.InitGUIConstants();
-				
-				if (state.selectedPath != null) {
-					if (pathEditor == null || !pathEditor.IsForPath(state.selectedPath)) {
-						pathEditor = state.selectedPath.MakeEditor();
-						windowPos.width = 500;
-					}
-				} else {
-					pathEditor = null;
-					windowPos.width = 200;
-				}
+    class State {
+        public SimpleCamPath selectedPath;
+        public List<SimpleCamPath> paths = new List<SimpleCamPath>();
+        public int numCreatedPaths = 0;
 
-				GUILayout.BeginHorizontal(); // BEGIN left/right panes
+        public void Stop() {
+            if (selectedPath != null)
+                selectedPath.StopRunning();
+        }
+    }
 
-				GUILayout.BeginVertical(); // BEGIN main controls
+    class MainWindow {
+        private const int WINDOW_ID = 73469086; // xkcd/221 compliance.
+        private bool isWindowOpen = false;
+        private SimpleCamPathEditor pathEditor = null;
+        private Rect windowPos;
+        private State state;
+        private Vector2 pathListScroll = new Vector2();
 
-				if (GUILayout.Button("New simple path")) {
-					state.numCreatedPaths++;
-                    state.selectedPath = SimpleCamPath.CreateForCurrentCameraState(
-						"Path #" + state.numCreatedPaths);
-					state.paths.Add(state.selectedPath);
-				}
+        public MainWindow(State state) {
+            this.state = state;
+            windowPos = new Rect(Screen.width / 2, Screen.height / 2, 200, 300);
+        }
 
-				// Scroll list allowing selection of an existing path.
-				pathListScroll = GUILayout.BeginScrollView(pathListScroll, false, true);
-				foreach (var path in state.paths) {
-					if (GUILayout.Toggle(path == state.selectedPath, path.Name)) {
-						if (state.selectedPath != path) {
-							state.selectedPath.StopRunning();
-							state.selectedPath = path;
-						}
-					}
-				}
-				GUILayout.EndScrollView();
+        public void ToggleWindow() {
+            if (isWindowOpen) {
+                HideWindow();
+            } else {
+                ShowWindow();
+            }
+        }
 
-				GUILayout.EndVertical(); // END main controls
+        public void ShowWindow() {
+            isWindowOpen = true;
+            RenderingManager.AddToPostDrawQueue(3, new Callback(DrawGUI));
+            GUI.FocusWindow(WINDOW_ID);
+        }
 
-				// Path editor lives in right-hand-frame.
-				if (pathEditor != null) {
-					pathEditor.DoGUI();
-				}
+        public void HideWindow() {
+            isWindowOpen = false;
+            RenderingManager.RemoveFromPostDrawQueue(3, new Callback(DrawGUI));
+        }
 
-				GUILayout.EndHorizontal(); // END left/right panes
+        private void DrawGUI() {
+            GUI.skin = HighLogic.Skin;
+            windowPos = GUILayout.Window(
+                WINDOW_ID, windowPos, DoGUI, "KerbCam",
+                GUILayout.MinWidth(200),
+                GUILayout.MinHeight(300));
+        }
 
-				GUI.DragWindow(new Rect(0, 0, 10000, 20));
-			} catch (Exception e) {
-				Debug.LogError("Caught exception in DoGUI: " + e);
-				throw;
-			}
-		}
-	}
+        private void DoGUI(int windowID) {
+            try {
+                C.InitGUIConstants();
+
+                if (state.selectedPath != null) {
+                    if (pathEditor == null || !pathEditor.IsForPath(state.selectedPath)) {
+                        pathEditor = state.selectedPath.MakeEditor();
+                        windowPos.width = 500;
+                    }
+                } else {
+                    pathEditor = null;
+                    windowPos.width = 200;
+                }
+
+                GUILayout.BeginHorizontal(); // BEGIN left/right panes
+
+                GUILayout.BeginVertical(); // BEGIN main controls
+
+                if (GUILayout.Button("New simple path")) {
+                    state.numCreatedPaths++;
+                    state.selectedPath = new SimpleCamPath(
+                        "Path #" + state.numCreatedPaths,
+                        2);
+                    state.paths.Add(state.selectedPath);
+                }
+
+                // Scroll list allowing selection of an existing path.
+                pathListScroll = GUILayout.BeginScrollView(pathListScroll, false, true);
+                foreach (var path in state.paths) {
+                    if (GUILayout.Toggle(path == state.selectedPath, path.Name)) {
+                        if (state.selectedPath != path) {
+                            state.selectedPath.StopRunning();
+                            state.selectedPath = path;
+                        }
+                    }
+                }
+                GUILayout.EndScrollView();
+
+                GUILayout.EndVertical(); // END main controls
+
+                // Path editor lives in right-hand-frame.
+                if (pathEditor != null) {
+                    pathEditor.DoGUI();
+                }
+
+                GUILayout.EndHorizontal(); // END left/right panes
+
+                GUI.DragWindow(new Rect(0, 0, 10000, 20));
+            } catch (Exception e) {
+                Debug.LogError(e.ToString() + "\n" + e.StackTrace);
+            }
+        }
+    }
 }

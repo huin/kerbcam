@@ -2,29 +2,31 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace KerbCam
-{
-	public class InterpolatorCurve<T>
-	{
-		private struct Frame
-        {
-			public float t;
-			public T value;
+namespace KerbCam {
+    public class InterpolatorCurve<T> {
+        public class Frame {
+            private float tInternal;
+            private T valueInternal;
 
-			public Frame(float time, T value)
-            {
-				this.t = time;
-				this.value = value;
-			}
-
-            public override string ToString()
-            {
-                return string.Format("Frame({0}, {1})", t, value);
+            public Frame(float t, T value) {
+                this.tInternal = t;
+                this.valueInternal = value;
             }
-		}
 
-        public interface IValueInterpolator
-        {
+            public float t {
+                get { return tInternal; }
+            }
+
+            public T value {
+                get { return valueInternal; }
+            }
+
+            public override string ToString() {
+                return string.Format("Frame({0}, {1})", tInternal, valueInternal);
+            }
+        }
+
+        public interface IValueInterpolator {
             /**
              * Interpolates between two values, t is scaled 
              * <param name="a">The value for t=0.</param>
@@ -35,27 +37,42 @@ namespace KerbCam
             T Evaluate(T a, T b, float t);
         }
 
-		// frames is maintained sorted on Frame.time.
-		private List<Frame> frames;
+        // frames is maintained sorted on Frame.time.
+        private List<Frame> frames;
 
         private IValueInterpolator interpolator;
 
-		public InterpolatorCurve(IValueInterpolator interpolator)
-		{
+        public InterpolatorCurve(IValueInterpolator interpolator) {
             frames = new List<Frame>();
             this.interpolator = interpolator;
-		}
+        }
 
-        public T Evaluate(float t)
-        {
+        public Frame this[int index] {
+            get { return frames[index]; }
+        }
+
+        public int Count {
+            get { return frames.Count; }
+        }
+
+        public float Length {
+            get {
+                if (frames.Count == 0)
+                    return 0f;
+                else
+                    return frames[frames.Count - 1].t;
+            }
+        }
+
+        public T Evaluate(float t) {
             if (frames.Count == 0)
                 return default(T);
 
             int lower = FindLowerIndex(t);
             if (lower < 0)
                 return frames[0].value;
-            if (lower >= frames.Count-1)
-                return frames[frames.Count-1].value;
+            if (lower >= frames.Count - 1)
+                return frames[frames.Count - 1].value;
 
             float lowerT = frames[lower].t;
             float upperT = frames[lower + 1].t;
@@ -63,34 +80,23 @@ namespace KerbCam
             T a = frames[lower].value;
             T b = frames[lower + 1].value;
 
-            return interpolator.Evaluate(a, b, range*(t - lowerT));
+            return interpolator.Evaluate(a, b, range * (t - lowerT));
         }
 
-        public float TimeAt(int index)
-        {
-            return frames[index].t;
-        }
-
-		public void AddKey(float time, T value)
-        {
+        public void AddKey(float time, T value) {
             Frame frame = new Frame(time, value);
-            if (frames.Count == 0)
-            {
+            if (frames.Count == 0) {
                 frames.Add(frame);
-            }
-            else
-            {
+            } else {
                 frames.Insert(FindInsertIndex(time), frame);
             }
 
-		}
+        }
 
-        private int FindInsertIndex(float time)
-        {
+        private int FindInsertIndex(float time) {
             var v = new SortedList<float, T>();
 
-            if (frames.Count == 0)
-            {
+            if (frames.Count == 0) {
                 return 0;
             }
             int lowerIndex = FindLowerIndex(time);
@@ -99,13 +105,11 @@ namespace KerbCam
 
         // FindIndex returns the highest index such that values[index].time <= time.
         // Returns -1 if time < values[0].time.
-        public int FindLowerIndex(float time)
-        {
+        public int FindLowerIndex(float time) {
             return BinSearchFindLowerIndex(time, 0, frames.Count - 1);
         }
 
-        private int BinSearchFindLowerIndex(float time, int lower, int upper)
-		{
+        private int BinSearchFindLowerIndex(float time, int lower, int upper) {
             float upperTime = frames[upper].t;
             if (time >= upperTime)
                 return upper;
@@ -118,19 +122,18 @@ namespace KerbCam
 
             int midIndex = lower + (upper - lower) / 2;
             float midTime = frames[midIndex].t;
-            if (time == midTime)
-            {
+            if (time == midTime) {
                 return midIndex;
-            }
-            else if (time < midTime)
-            {
+            } else if (time < midTime) {
                 return BinSearchFindLowerIndex(time, lower, midIndex);
-            }
-            else // (time > midTime)
-            {
+            } else /* (time > midTime) */ {
                 return BinSearchFindLowerIndex(time, midIndex, upper);
             }
-		}
-	}
+        }
+
+        public void RemoveAt(int index) {
+            frames.RemoveAt(index);
+        }
+    }
 }
 

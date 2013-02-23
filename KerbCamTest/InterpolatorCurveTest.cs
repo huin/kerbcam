@@ -2,25 +2,20 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using KerbCam;
 
-namespace KerbCamTest
-{
-    public class FakeValueInterpolator : InterpolatorCurve<string>.IValueInterpolator
-    {
-        public string Evaluate(string a, string b, float t)
-        {
+namespace KerbCamTest {
+    public class FakeValueInterpolator : InterpolatorCurve<string>.IValueInterpolator {
+        public string Evaluate(string a, string b, float t) {
             return string.Format("{0} {1} {2:0.0}",
                 a, b, t);
         }
     }
 
     [TestClass]
-    public class InterpolatorCurveTest
-    {
+    public class InterpolatorCurveTest {
         private InterpolatorCurve<String> ic;
 
         [TestInitialize]
-        public void SetUp()
-        {
+        public void SetUp() {
             ic = new InterpolatorCurve<String>(new FakeValueInterpolator());
             ic.AddKey(0f, "zero");
             ic.AddKey(1f, "one");
@@ -28,24 +23,21 @@ namespace KerbCamTest
         }
 
         [TestMethod]
-        public void TestOrdered()
-        {
-            Assert.AreEqual(0f, ic.TimeAt(0));
-            Assert.AreEqual(1f, ic.TimeAt(1));
-            Assert.AreEqual(2f, ic.TimeAt(2));
+        public void TestOrdered() {
+            Assert.AreEqual(0f, ic[0].t);
+            Assert.AreEqual(1f, ic[1].t);
+            Assert.AreEqual(2f, ic[2].t);
         }
 
         [TestMethod]
-        public void TestAddMiddle()
-        {
+        public void TestAddMiddle() {
             ic.AddKey(0.5f, "point five");
             Assert.AreEqual(1, ic.FindLowerIndex(0.5f));
             Assert.AreEqual(1, ic.FindLowerIndex(0.6f));
         }
 
         [TestMethod]
-        public void TestAddStart()
-        {
+        public void TestAddStart() {
             ic.AddKey(-1f, "minus one");
             Assert.AreEqual(0, ic.FindLowerIndex(-1f));
             Assert.AreEqual(0, ic.FindLowerIndex(-0.5f));
@@ -53,8 +45,7 @@ namespace KerbCamTest
         }
 
         [TestMethod]
-        public void TestFindIndex()
-        {
+        public void TestFindIndex() {
             Assert.AreEqual(-1, ic.FindLowerIndex(-1.0f));
             Assert.AreEqual(0, ic.FindLowerIndex(0.0f));
             Assert.AreEqual(0, ic.FindLowerIndex(0.5f));
@@ -66,8 +57,7 @@ namespace KerbCamTest
         }
 
         [TestMethod]
-        public void TestEvaluate()
-        {
+        public void TestEvaluate() {
             Assert.AreEqual("zero", ic.Evaluate(-1f));
             Assert.AreEqual("zero", ic.Evaluate(-0.5f));
             Assert.AreEqual("zero one 0.0", ic.Evaluate(0.0f));
