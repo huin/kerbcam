@@ -14,6 +14,10 @@ namespace KerbCam {
     public class BadTransformCountError : Exception {
         public int numTransformLevels;
 
+        public BadTransformCountError(int numTransformLevels) {
+            this.numTransformLevels = numTransformLevels;
+        }
+
         public override string ToString() {
             return string.Format("Bad number of transform levels: {0}", numTransformLevels);
         }
@@ -24,9 +28,11 @@ namespace KerbCam {
 
         // Running state variables.
         // TODO: Consider factoring these out into a runner class.
+        // TODO: Merge isRunning and paused into an enum.
         private bool isRunning = false;
+        private bool paused = false;
         private float curTime = 0.0F;
-        private FlightCamera cam;
+        private FlightCamera runningCam;
 
         // Initialized from the constructor.
         private string name;
@@ -41,7 +47,7 @@ namespace KerbCam {
 
         public SimpleCamPath(String name, int numTransformLevels) {
             if (numTransformLevels < 1) {
-                throw new BadTransformCountError { numTransformLevels = numTransformLevels };
+                throw new BadTransformCountError(numTransformLevels);
             }
 
             this.name = name;
@@ -60,6 +66,18 @@ namespace KerbCam {
             get { return isRunning; }
         }
 
+        /// The value of Paused only has an effect while running.
+        public bool Paused {
+            get { return paused; }
+            set { paused = value; }
+        }
+
+        /// The value of CurrentTime only has an effect while running.
+        public float CurrentTime {
+            get { return curTime; }
+            set { curTime = value; }
+        }
+
         public string Name {
             get { return name; }
             set { this.name = value; }
@@ -73,10 +91,11 @@ namespace KerbCam {
             var currentTrn = trn;
             for (int i = 0; i < localRotations.Length; i++) {
                 if (currentTrn == null) {
-                    throw new BadTransformCountError { numTransformLevels = i };
+                    throw new BadTransformCountError(i);
                 }
-                localRotations[i].AddKey(nextTime, trn.localRotation);
-                localPositions[i].Add(nextTime, trn.localPosition);
+                localRotations[i].AddKey(nextTime, currentTrn.localRotation);
+                localPositions[i].Add(nextTime, currentTrn.localPosition);
+
                 currentTrn = currentTrn.parent;
             }
             // TODO: Provide parameter for time (instead of nextTime), and track externally.
@@ -85,10 +104,6 @@ namespace KerbCam {
 
         public float TimeAt(int index) {
             return localRotations[0][index].t;
-        }
-
-        public void MoveCameraToKey(int index) {
-            // TODO: Make this work again in a sensible way.
         }
 
         public void RemoveKey(int index) {
@@ -105,50 +120,51 @@ namespace KerbCam {
         }
 
         public void StartRunning(FlightCamera cam) {
-            if (isRunning) {
+            if (runningCam != null) {
                 return;
             }
             if (NumKeys == 0) {
                 return;
             }
 
-            this.cam = cam;
-            this.cam.DeactivateUpdate();
+            this.runningCam = cam;
+            this.runningCam.DeactivateUpdate();
             isRunning = true;
             curTime = 0F;
             UpdateTransform();
         }
 
         public void StopRunning() {
-            if (!isRunning) {
+            if (runningCam == null) {
                 return;
             }
             isRunning = false;
-            cam.ActivateUpdate();
-            cam = null;
+            runningCam.ActivateUpdate();
+            runningCam = null;
         }
 
         public void Update() {
             if (!isRunning)
                 return;
 
-            curTime += Time.deltaTime;
+            if (!paused) {
+                curTime += Time.deltaTime;
+            }
             UpdateTransform();
-
-            if (curTime >= localRotations[0].Length) {
+            if (!paused && curTime >= localRotations[0].Length) {
                 StopRunning();
             }
         }
 
         private void UpdateTransform() {
-            var currentTrn = cam.transform;
-            Debug.Log(currentTrn.localRotation);
+            var currentTrn = runningCam.transform;
             for (int i = 0; i < localRotations.Length; i++) {
                 if (currentTrn == null) {
-                    throw new BadTransformCountError { numTransformLevels = i };
+                    throw new BadTransformCountError(i);
                 }
                 currentTrn.localRotation = localRotations[i].Evaluate(curTime);
                 currentTrn.localPosition = localPositions[i].EvaluateVector(curTime);
+
                 currentTrn = currentTrn.parent;
             }
         }
@@ -183,6 +199,12 @@ namespace KerbCam {
             path.Name = GUILayout.TextField(path.Name);
             GUILayout.EndHorizontal();
 
+            bool shouldRun = GUILayout.Toggle(path.IsRunning, "Running");
+            if (path.IsRunning != shouldRun) {
+                path.ToggleRunning(FlightCamera.fetch);
+            }
+            path.Paused = GUILayout.Toggle(path.Paused, "Paused");
+
             scrollPosition = GUILayout.BeginScrollView(scrollPosition, false, true);
             for (int i = 0; i < path.NumKeys; i++) {
                 GUILayout.BeginHorizontal();
@@ -193,7 +215,7 @@ namespace KerbCam {
                     }
                 }
                 if (GUILayout.Button("View", C.CompactButtonStyle)) {
-                    path.MoveCameraToKey(i);
+                    path.CurrentTime = path.TimeAt(i);
                 }
                 GUILayout.Label(
                     string.Format("#{0} @{1}s", i, path.TimeAt(i)),

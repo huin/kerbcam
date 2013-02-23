@@ -77,19 +77,6 @@ namespace KerbCam {
                 }
 
                 if (ev.Equals(KEY_DEBUG_LOG)) {
-                    // TODO: Find out if we can use these for other pathing techniques.
-                    /*Debug.Log(FlightCamera.fetch.transform.localPosition);
-                    Debug.Log(FlightCamera.fetch.transform.localRotation);
-                    Debug.Log(FlightCamera.fetch.transform.localScale);
-                    Debug.Log(FlightCamera.fetch.transform.right);
-                    Debug.Log(FlightCamera.fetch.transform.up);
-                    Debug.Log(FlightCamera.fetch.targetDirection);
-                    Debug.Log(FlightCamera.fetch.transform.forward);
-                    Debug.Log(FlightCamera.fetch.transform.rotation);
-                    Debug.Log(FlightCamera.fetch.camera);
-                    Debug.Log(FlightCamera.fetch.endDirection);
-                    Debug.Log(FlightCamera.fetch.FoRMode);
-                    Debug.Log(FlightCamera.fetch.sharpness);*/
                     Transform trn = FlightCamera.fetch.transform;
 
                     int i = 0;
