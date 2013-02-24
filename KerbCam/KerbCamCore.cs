@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using UnityEngine;
 using KSP.IO;
 
@@ -118,6 +119,7 @@ namespace KerbCam {
     class MainWindow {
         private const int WINDOW_ID = 73469086; // xkcd/221 compliance.
         private State state;
+        private Version version;
 
         private bool isWindowOpen = false;
         private SimpleCamPathEditor pathEditor = null;
@@ -126,6 +128,7 @@ namespace KerbCam {
 
         public MainWindow(State state) {
             this.state = state;
+            version = Assembly.GetCallingAssembly().GetName().Version;
             resizer = new WindowResizer(
                 new Rect(10, 100, 200, 200),
                 new Vector2(200, 150));
@@ -151,10 +154,13 @@ namespace KerbCam {
         }
 
         private void DrawGUI() {
+
             GUI.skin = HighLogic.Skin;
             resizer.Position = GUILayout.Window(
-                WINDOW_ID, resizer.Position, DoGUI, "KerbCam",
-                resizer.LayoutMinWidth(), resizer.LayoutMinHeight());
+                WINDOW_ID, resizer.Position, DoGUI,
+                "KerbCam " + version.ToString(2),
+                resizer.LayoutMinWidth(),
+                resizer.LayoutMinHeight());
         }
 
         private void DoGUI(int windowID) {
