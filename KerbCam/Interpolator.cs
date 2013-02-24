@@ -4,34 +4,25 @@ using UnityEngine;
 
 namespace KerbCam {
 
-    // TODO: Make this a struct.
-    public struct Frame<Value> {
-        private float paramInternal;
-        private Value valueInternal;
+    public struct Key<Value> {
+        public float param;
+        public Value value;
 
-        public Frame(float param, Value value) {
-            this.paramInternal = param;
-            this.valueInternal = value;
-        }
-
-        public float param {
-            get { return paramInternal; }
-        }
-
-        public Value value {
-            get { return valueInternal; }
+        public Key(float param, Value value) {
+            this.param = param;
+            this.value = value;
         }
 
         public override string ToString() {
-            return string.Format("Frame({0}, {1})", paramInternal, valueInternal);
+            return string.Format("Key({0}, {1})", param, value);
         }
     }
 
     public class ParamSeries<Value> {
         // frames is maintained sorted on Frame.param.
-        private List<Frame<Value>> frames = new List<Frame<Value>>();
+        private List<Key<Value>> frames = new List<Key<Value>>();
 
-        public Frame<Value> this[int index] {
+        public Key<Value> this[int index] {
             get { return frames[index]; }
         }
 
@@ -58,7 +49,7 @@ namespace KerbCam {
         }
 
         public int AddKey(float param, Value value) {
-            Frame<Value> frame = new Frame<Value>(param, value);
+            Key<Value> frame = new Key<Value>(param, value);
             if (frames.Count == 0) {
                 frames.Add(frame);
                 return frames.Count - 1;
