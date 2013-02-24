@@ -4,55 +4,38 @@ using UnityEngine;
 
 namespace KerbCam {
 
-    public class Interpolator<Value> {
-        public class Frame {
-            private float paramInternal;
-            private Value valueInternal;
+    // TODO: Make this a struct.
+    public struct Frame<Value> {
+        private float paramInternal;
+        private Value valueInternal;
 
-            public Frame(float param, Value value) {
-                this.paramInternal = param;
-                this.valueInternal = value;
-            }
-
-            public float param {
-                get { return paramInternal; }
-            }
-
-            public Value value {
-                get { return valueInternal; }
-            }
-
-            public override string ToString() {
-                return string.Format("Frame({0}, {1})", paramInternal, valueInternal);
-            }
+        public Frame(float param, Value value) {
+            this.paramInternal = param;
+            this.valueInternal = value;
         }
 
-        public interface IValueInterpolator {
-            /**
-             * Interpolates between two values, param is scaled 
-             * <param name="a">The value for param=0.</param>
-             * <param name="b">The value for param=1.</param>
-             * <param name="param">The interpolation parameter, this varies
-             * between 0 and 1.</param>
-             */
-            Value Evaluate(Value a, Value b, float param);
+        public float param {
+            get { return paramInternal; }
         }
 
+        public Value value {
+            get { return valueInternal; }
+        }
+
+        public override string ToString() {
+            return string.Format("Frame({0}, {1})", paramInternal, valueInternal);
+        }
+    }
+
+    public class ParamSeries<Value> {
         // frames is maintained sorted on Frame.param.
-        private List<Frame> frames;
+        private List<Frame<Value>> frames = new List<Frame<Value>>();
 
-        private IValueInterpolator interpolator;
-
-        public Interpolator(IValueInterpolator interpolator) {
-            frames = new List<Frame>();
-            this.interpolator = interpolator;
-        }
-
-        public Frame this[int index] {
+        public Frame<Value> this[int index] {
             get { return frames[index]; }
         }
 
-        public int NumKeys {
+        public int Count {
             get { return frames.Count; }
         }
 
@@ -74,33 +57,8 @@ namespace KerbCam {
             }
         }
 
-        public Value Evaluate(float param) {
-            if (frames.Count == 0)
-                return default(Value);
-
-            int lower = FindLowerIndex(param);
-            if (lower < 0)
-                return frames[0].value;
-            if (lower >= frames.Count - 1)
-                return frames[frames.Count - 1].value;
-
-            float lowerT = frames[lower].param;
-            float upperT = frames[lower + 1].param;
-            float range = upperT - lowerT;
-
-            // Avoid nasty divide-by-zero math for keys that are very close together in param.
-            if (range < 1e-7f) {
-                range = 1e-7f;
-            }
-
-            Value a = frames[lower].value;
-            Value b = frames[lower + 1].value;
-
-            return interpolator.Evaluate(a, b, (param - lowerT) / range);
-        }
-
         public int AddKey(float param, Value value) {
-            Frame frame = new Frame(param, value);
+            Frame<Value> frame = new Frame<Value>(param, value);
             if (frames.Count == 0) {
                 frames.Add(frame);
                 return frames.Count - 1;
@@ -164,6 +122,57 @@ namespace KerbCam {
             Value value = frames[index].value;
             frames.RemoveAt(index);
             return AddKey(param, value);
+        }
+    }
+
+    public class Interpolator<Value> {
+
+        public interface IValueInterpolator {
+            /**
+             * Interpolates between two values, param is scaled 
+             * <param name="a">The value for param=0.</param>
+             * <param name="b">The value for param=1.</param>
+             * <param name="param">The interpolation parameter, this varies
+             * between 0 and 1.</param>
+             */
+            Value Evaluate(Value a, Value b, float param);
+        }
+
+        private ParamSeries<Value> paramSeries = new ParamSeries<Value>();
+
+        private IValueInterpolator interpolator;
+
+        public Interpolator(IValueInterpolator interpolator) {
+            this.interpolator = interpolator;
+        }
+
+        public ParamSeries<Value> Keys {
+            get { return paramSeries; }
+        }
+
+        public Value Evaluate(float param) {
+            if (paramSeries.Count == 0)
+                return default(Value);
+
+            int lower = paramSeries.FindLowerIndex(param);
+            if (lower < 0)
+                return paramSeries[0].value;
+            if (lower >= paramSeries.Count - 1)
+                return paramSeries[paramSeries.Count - 1].value;
+
+            float lowerT = paramSeries[lower].param;
+            float upperT = paramSeries[lower + 1].param;
+            float range = upperT - lowerT;
+
+            // Avoid nasty divide-by-zero math for keys that are very close together in param.
+            if (range < 1e-7f) {
+                range = 1e-7f;
+            }
+
+            Value a = paramSeries[lower].value;
+            Value b = paramSeries[lower + 1].value;
+
+            return interpolator.Evaluate(a, b, (param - lowerT) / range);
         }
     }
 }

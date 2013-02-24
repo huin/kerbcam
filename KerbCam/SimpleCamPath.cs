@@ -92,11 +92,11 @@ namespace KerbCam {
         }
 
         public int NumKeys {
-            get { return localRotations[0].NumKeys; }
+            get { return localRotations[0].Keys.Count; }
         }
 
         public float MaxTime {
-            get { return localRotations[0].MaxParam; }
+            get { return localRotations[0].Keys.MaxParam; }
         }
 
         public int AddKey(Transform trn, float time) {
@@ -106,8 +106,8 @@ namespace KerbCam {
                 if (currentTrn == null) {
                     throw new BadTransformCountError(i);
                 }
-                newIndex = localRotations[i].AddKey(time, currentTrn.localRotation);
-                localPositions[i].AddKey(time, currentTrn.localPosition);
+                newIndex = localRotations[i].Keys.AddKey(time, currentTrn.localRotation);
+                localPositions[i].Keys.AddKey(time, currentTrn.localPosition);
 
                 currentTrn = currentTrn.parent;
             }
@@ -115,7 +115,7 @@ namespace KerbCam {
         }
 
         public void AddKeyToEnd(Transform trn) {
-            if (localRotations[0].NumKeys > 0) {
+            if (localRotations[0].Keys.Count > 0) {
                 AddKey(trn, MaxTime + 1f);
             } else {
                 AddKey(trn, 0f);
@@ -123,21 +123,24 @@ namespace KerbCam {
         }
 
         public float TimeAt(int index) {
-            return localRotations[0][index].param;
+            return localRotations[0].Keys[index].param;
         }
 
         public int MoveKeyAt(int index, float t) {
             int newIndex = 0;
             for (int i = 0; i < localRotations.Length; i++) {
-                newIndex = localRotations[i].MoveKeyAt(index, t);
-                localPositions[i].MoveKeyAt(index, t);
+                newIndex = localRotations[i].Keys.MoveKeyAt(index, t);
+                localPositions[i].Keys.MoveKeyAt(index, t);
             }
             return newIndex;
         }
 
         public void RemoveKey(int index) {
             foreach (var curve in localRotations) {
-                curve.RemoveAt(index);
+                curve.Keys.RemoveAt(index);
+            }
+            foreach (var curve in localPositions) {
+                curve.Keys.RemoveAt(index);
             }
         }
 
@@ -186,7 +189,7 @@ namespace KerbCam {
             lastSeenTime = worldTime;
 
             UpdateTransform();
-            if (!paused && curTime >= localRotations[0].MaxParam) {
+            if (!paused && curTime >= localRotations[0].Keys.MaxParam) {
                 StopRunning();
             }
         }
