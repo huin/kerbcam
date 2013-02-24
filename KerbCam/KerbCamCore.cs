@@ -27,9 +27,6 @@ namespace KerbCam {
         private Event KEY_PATH_ADD_POINT = Event.KeyboardEvent(KeyCode.Insert.ToString());
         private Event KEY_PATH_TOGGLE_WINDOW = Event.KeyboardEvent(KeyCode.F8.ToString());
 
-        // TODO: Remove this logging thing.
-        private Event KEY_DEBUG_LOG = Event.KeyboardEvent(KeyCode.F7.ToString());
-
         public void OnLevelWasLoaded() {
             isEnabled = (FlightGlobals.fetch == null || FlightGlobals.ActiveVessel == null)
                 && HighLogic.LoadedScene == GameScenes.FLIGHT;
@@ -55,8 +52,8 @@ namespace KerbCam {
             if (!isEnabled)
                 return;
 
-            if (state.selectedPath != null)
-                state.selectedPath.Update();
+            if (state.SelectedPath != null)
+                state.SelectedPath.Update();
         }
 
         public void OnGUI() {
@@ -67,35 +64,16 @@ namespace KerbCam {
 
                 var ev = Event.current;
 
-                if (state.selectedPath != null) {
+                if (state.SelectedPath != null) {
                     // Events that require an active path.
                     if (ev.Equals(KEY_PATH_ADD_POINT)) {
-                        state.selectedPath.AddKey(FlightCamera.fetch.transform);
+                        state.SelectedPath.AddKeyToEnd(FlightCamera.fetch.transform);
                     } else if (ev.Equals(KEY_PATH_TOGGLE_RUNNING)) {
-                        state.selectedPath.ToggleRunning(FlightCamera.fetch);
+                        state.SelectedPath.ToggleRunning(FlightCamera.fetch);
                     }
                 }
 
-                if (ev.Equals(KEY_DEBUG_LOG)) {
-                    Transform trn = FlightCamera.fetch.transform;
-
-                    int i = 0;
-                    for (var t = trn; t != null; t = t.parent, i++) {
-                        Debug.Log(string.Format(
-                            "[{0}] position={1} rotation={2} localPosition={3} localRotation={4}" +
-                            " right={5} up={6} forward={7} localScale={8} localEulerAngles={9}",
-                            i, t.position, t.rotation, t.localPosition, t.localRotation,
-                            t.right, t.up, t.forward, t.localScale, t.localEulerAngles));
-                    }
-                    /*Debug.Log("Cameras:");
-                    foreach (var c in Camera.allCameras)
-                    {
-                        string suffix = (c == Camera.current ? "(current)" : "");
-                        Debug.Log(string.Format(
-                            "{0} name={1} tag={2} enabled={3} transform={4} depth={5} object id={6}",
-                            suffix, c.name, c.tag, c.enabled, c.transform, c.depth, c.GetInstanceID()));
-                    }*/
-                } else if (ev.Equals(KEY_PATH_TOGGLE_WINDOW)) {
+                if (ev.Equals(KEY_PATH_TOGGLE_WINDOW)) {
                     mainWindow.ToggleWindow();
                 }
             } catch (Exception e) {
@@ -108,7 +86,7 @@ namespace KerbCam {
     /// Central stored state of KerbCam.
     /// </summary>
     class State {
-        public SimpleCamPath selectedPath;
+        private SimpleCamPath selectedPath;
         public List<SimpleCamPath> paths = new List<SimpleCamPath>();
         public int numCreatedPaths = 0;
 
@@ -121,6 +99,15 @@ namespace KerbCam {
             paths.RemoveAt(index);
         }
 
+        public SimpleCamPath SelectedPath {
+            get { return selectedPath; }
+            set {
+                if (selectedPath != null) {
+                    selectedPath.StopRunning();
+                }
+                selectedPath = value;
+            }
+        }
 
         public void Stop() {
             if (selectedPath != null)
@@ -174,13 +161,13 @@ namespace KerbCam {
             try {
                 C.InitGUIConstants();
 
-                if (state.selectedPath != null) {
+                if (state.SelectedPath != null) {
                     // A path is selected.
-                    if (pathEditor == null || !pathEditor.IsForPath(state.selectedPath)) {
+                    if (pathEditor == null || !pathEditor.IsForPath(state.SelectedPath)) {
                         // Selected path has changed.
-                        pathEditor = state.selectedPath.MakeEditor();
-                        resizer.MinWidth = 500;
-                        resizer.MinHeight = 200;
+                        pathEditor = state.SelectedPath.MakeEditor();
+                        resizer.MinWidth = 400;
+                        resizer.MinHeight = 250;
                     }
                 } else {
                     // No path is selected.
@@ -199,10 +186,11 @@ namespace KerbCam {
 
                 if (GUILayout.Button("New simple path")) {
                     state.numCreatedPaths++;
-                    state.selectedPath = new SimpleCamPath(
+                    var newPath = new SimpleCamPath(
                         "Path #" + state.numCreatedPaths,
                         2);
-                    state.paths.Add(state.selectedPath);
+                    state.paths.Add(newPath);
+                    state.SelectedPath = newPath;
                 }
 
                 // Scroll list allowing selection of an existing path.
@@ -216,14 +204,19 @@ namespace KerbCam {
                         }
                     }
 
-                    var path = state.paths[i];
-                    if (GUILayout.Toggle(path == state.selectedPath, "")) {
-                        if (state.selectedPath != path) {
-                            state.selectedPath.StopRunning();
-                            state.selectedPath = path;
+                    {
+                        var path = state.paths[i];
+                        bool isSelected = path == state.SelectedPath;
+                        bool doSelect = GUILayout.Toggle(path == state.SelectedPath, "");
+                        if (isSelected != doSelect) {
+                            if (doSelect) {
+                                state.SelectedPath = path;
+                            } else {
+                                state.SelectedPath = null;
+                            }
                         }
+                        GUILayout.Label(path.Name);
                     }
-                    GUILayout.Label(path.Name);
                     GUILayout.FlexibleSpace();
                     GUILayout.EndHorizontal(); // END path widgets
                 }

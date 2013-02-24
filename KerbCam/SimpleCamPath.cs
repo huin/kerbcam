@@ -11,6 +11,14 @@ namespace KerbCam {
         }
     }
 
+    public class Vector3LerpInterpolator : InterpolatorCurve<Vector3>.IValueInterpolator {
+        public static Vector3LerpInterpolator instance = new Vector3LerpInterpolator();
+
+        public Vector3 Evaluate(Vector3 a, Vector3 b, float t) {
+            return Vector3.Lerp(a, b, t);
+        }
+    }
+
     public class BadTransformCountError : Exception {
         public int numTransformLevels;
 
@@ -24,13 +32,12 @@ namespace KerbCam {
     }
 
     public class SimpleCamPath {
-        private float nextTime = 0;
-
         // Running state variables.
         // TODO: Consider factoring these out into a runner class.
         // TODO: Merge isRunning and paused into an enum.
         private bool isRunning = false;
         private bool paused = false;
+        private float lastSeenTime;
         private float curTime = 0.0F;
         private FlightCamera runningCam;
 
@@ -43,7 +50,7 @@ namespace KerbCam {
         // TODO: Consider Making one big type containing an array of the
         // translation and rotation for each level.
         private InterpolatorCurve<Quaternion>[] localRotations;
-        private Vector3Curve[] localPositions;
+        private InterpolatorCurve<Vector3>[] localPositions;
 
         public SimpleCamPath(String name, int numTransformLevels) {
             if (numTransformLevels < 1) {
@@ -54,11 +61,12 @@ namespace KerbCam {
             this.numTransformLevels = numTransformLevels;
 
             localRotations = new InterpolatorCurve<Quaternion>[numTransformLevels];
-            localPositions = new Vector3Curve[numTransformLevels];
+            localPositions = new InterpolatorCurve<Vector3>[numTransformLevels];
             for (int i = 0; i < numTransformLevels; i++) {
                 localRotations[i] = new InterpolatorCurve<Quaternion>(
                     QuaternionSlerpInterpolator.instance);
-                localPositions[i] = new Vector3Curve();
+                localPositions[i] = new InterpolatorCurve<Vector3>(
+                    Vector3LerpInterpolator.instance);
             }
         }
 
@@ -84,26 +92,47 @@ namespace KerbCam {
         }
 
         public int NumKeys {
-            get { return localRotations[0].Count; }
+            get { return localRotations[0].NumKeys; }
         }
 
-        public void AddKey(Transform trn) {
+        public float MaxTime {
+            get { return localRotations[0].MaxTime; }
+        }
+
+        public int AddKey(Transform trn, float time) {
             var currentTrn = trn;
+            int newIndex = -1;
             for (int i = 0; i < localRotations.Length; i++) {
                 if (currentTrn == null) {
                     throw new BadTransformCountError(i);
                 }
-                localRotations[i].AddKey(nextTime, currentTrn.localRotation);
-                localPositions[i].Add(nextTime, currentTrn.localPosition);
+                newIndex = localRotations[i].AddKey(time, currentTrn.localRotation);
+                localPositions[i].AddKey(time, currentTrn.localPosition);
 
                 currentTrn = currentTrn.parent;
             }
-            // TODO: Provide parameter for time (instead of nextTime), and track externally.
-            nextTime += 1.0f;
+            return newIndex;
+        }
+
+        public void AddKeyToEnd(Transform trn) {
+            if (localRotations[0].NumKeys > 0) {
+                AddKey(trn, MaxTime + 1f);
+            } else {
+                AddKey(trn, 0f);
+            }
         }
 
         public float TimeAt(int index) {
             return localRotations[0][index].t;
+        }
+
+        public int MoveKeyAt(int index, float t) {
+            int newIndex = 0;
+            for (int i = 0; i < localRotations.Length; i++) {
+                newIndex = localRotations[i].MoveKeyAt(index, t);
+                localPositions[i].MoveKeyAt(index, t);
+            }
+            return newIndex;
         }
 
         public void RemoveKey(int index) {
@@ -127,8 +156,10 @@ namespace KerbCam {
                 return;
             }
 
-            this.runningCam = cam;
-            this.runningCam.DeactivateUpdate();
+            lastSeenTime = Time.realtimeSinceStartup;
+
+            runningCam = cam;
+            runningCam.DeactivateUpdate();
             isRunning = true;
             curTime = 0F;
             UpdateTransform();
@@ -147,11 +178,15 @@ namespace KerbCam {
             if (!isRunning)
                 return;
 
+            float worldTime = Time.realtimeSinceStartup;
             if (!paused) {
-                curTime += Time.deltaTime;
+                float dt = worldTime - lastSeenTime;
+                curTime += dt;
             }
+            lastSeenTime = worldTime;
+
             UpdateTransform();
-            if (!paused && curTime >= localRotations[0].Length) {
+            if (!paused && curTime >= localRotations[0].MaxTime) {
                 StopRunning();
             }
         }
@@ -162,8 +197,8 @@ namespace KerbCam {
                 if (currentTrn == null) {
                     throw new BadTransformCountError(i);
                 }
-                currentTrn.localRotation = localRotations[i].Evaluate(curTime);
-                currentTrn.localPosition = localPositions[i].EvaluateVector(curTime);
+                var r = currentTrn.localRotation = localRotations[i].Evaluate(curTime);
+                currentTrn.localPosition = localPositions[i].Evaluate(curTime);
 
                 currentTrn = currentTrn.parent;
             }
@@ -176,6 +211,9 @@ namespace KerbCam {
 
     public class SimpleCamPathEditor {
         private Vector2 scrollPosition = new Vector2(0, 0);
+        private int selectedKeyIndex = -1;
+        private string selectedKeyTimeString = "";
+        private string newKeyTimeString = "0.00";
 
         private SimpleCamPath path;
 
@@ -188,9 +226,14 @@ namespace KerbCam {
         }
 
         public void DoGUI() {
-            // TODO: Key timing tweaking UI. For now, each key is created one second apart.
+            GUILayout.BeginHorizontal(); // BEGIN outer
+            DoPathEditing();
+            DoKeyEditing();
+            GUILayout.EndHorizontal(); // END outer
+        }
 
-            GUILayout.BeginVertical();
+        private void DoPathEditing() {
+            GUILayout.BeginVertical(); // BEGIN path editing
             GUILayout.Label(
                 string.Format("Simple camera path [{0} keys]", path.NumKeys));
 
@@ -199,7 +242,43 @@ namespace KerbCam {
             path.Name = GUILayout.TextField(path.Name);
             GUILayout.EndHorizontal(); // END name field
 
+            DoPlaybackControls();
+
+            DoKeysList();
+
+            GUILayout.Label(string.Format("End: {0:0.00}s", path.MaxTime));
+
+            DoNewKeyControls();
+
+            GUILayout.EndVertical(); // END path editing
+        }
+
+        private void DoKeysList() {
+            // BEGIN Path keys list and scroller.
+            scrollPosition = GUILayout.BeginScrollView(scrollPosition, false, true);
+            for (int i = 0; i < path.NumKeys; i++) {
+                GUILayout.BeginHorizontal();
+                bool isSelected = i == selectedKeyIndex;
+                bool doSelect = GUILayout.Toggle(isSelected, "");
+                if (isSelected != doSelect) {
+                    if (doSelect) {
+                        selectedKeyIndex = i;
+                    } else {
+                        selectedKeyIndex = -1;
+                    }
+                    UpdateSelectedKeyTime();
+                }
+                GUILayout.Label(
+                    string.Format("#{0} @{1:0.00}s", i, path.TimeAt(i)));
+                GUILayout.FlexibleSpace();
+                GUILayout.EndHorizontal();
+            }
+            GUILayout.EndScrollView(); // END Path keys list and scroller.
+        }
+
+        private void DoPlaybackControls() {
             GUILayout.BeginHorizontal(); // BEGIN playback controls
+            GUILayout.Label(string.Format("{0:0.00}s", path.CurrentTime));
             bool shouldRun = GUILayout.Toggle(path.IsRunning, "");
             GUILayout.Label("Play");
             if (path.IsRunning != shouldRun) {
@@ -209,29 +288,102 @@ namespace KerbCam {
             GUILayout.Label("Pause");
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal(); // END playback controls
+        }
 
-            // BEGIN Path keys list and scroller.
-            scrollPosition = GUILayout.BeginScrollView(scrollPosition, false, true);
-            for (int i = 0; i < path.NumKeys; i++) {
-                GUILayout.BeginHorizontal();
-                if (GUILayout.Button("X", C.DeleteButtonStyle)) {
-                    path.RemoveKey(i);
-                    if (i >= path.NumKeys) {
-                        break;
-                    }
-                }
-                if (GUILayout.Button("View")) {
-                    path.CurrentTime = path.TimeAt(i);
-                }
-                GUILayout.Label(
-                    string.Format("#{0} @{1}s", i, path.TimeAt(i)));
-                GUILayout.FlexibleSpace();
-                GUILayout.EndHorizontal();
+        private void DoNewKeyControls() {
+            GUILayout.BeginHorizontal();
+            // Create key at the end.
+            if (GUILayout.Button("New key")) {
+                path.AddKeyToEnd(FlightCamera.fetch.transform);
             }
-            GUILayout.EndScrollView();
-            // END Path keys list and scroller.
 
-            GUILayout.EndVertical();
+            // Create key at specified time.
+            {
+                float newKeyTime;
+                bool validNewKeyTime = float.TryParse(newKeyTimeString, out newKeyTime);
+                var buttonStyle = validNewKeyTime ? GUI.skin.button : C.DisabledButtonStyle;
+
+                if (GUILayout.Button("at", buttonStyle) && validNewKeyTime) {
+                    path.AddKey(FlightCamera.fetch.transform, newKeyTime);
+                }
+            }
+
+            // Specified time.
+            newKeyTimeString = GUILayout.TextField(newKeyTimeString);
+
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();
+        }
+
+        private void DoKeyEditing() {
+            if (selectedKeyIndex < 0 || selectedKeyIndex >= path.NumKeys) {
+                return;
+            }
+
+            // Vertical time slider for selected key time.
+            // This is a key editing control, but uses the vertical space
+            // between path and key editing controls, so it's not put into
+            // the key editing buttons layout region.
+            {
+                float keyTime = path.TimeAt(selectedKeyIndex);
+                float newKeyTime = GUILayout.VerticalSlider(keyTime, 0f, path.MaxTime);
+                if (Math.Abs(keyTime - newKeyTime) > 1e-5) {
+                    selectedKeyIndex = path.MoveKeyAt(selectedKeyIndex, newKeyTime);
+                    UpdateSelectedKeyTime();
+                }
+            }
+
+            GUILayout.BeginVertical(); // BEGIN key editing buttons
+            GUILayout.Label(string.Format("Key #{0}", selectedKeyIndex));
+
+            {
+                // Direct editing of key time.
+                GUILayout.BeginHorizontal(); // BEGIN key time editing
+                selectedKeyTimeString = GUILayout.TextField(selectedKeyTimeString);
+                float newKeyTime;
+                if (float.TryParse(selectedKeyTimeString, out newKeyTime)) {
+                    selectedKeyIndex = path.MoveKeyAt(selectedKeyIndex, newKeyTime);
+                }
+                GUILayout.Label("s");
+                GUILayout.FlexibleSpace();
+                GUILayout.EndHorizontal(); // END key time editing
+            }
+
+            if (GUILayout.Button("Set")) {
+                var keyTime = path.TimeAt(selectedKeyIndex);
+                path.RemoveKey(selectedKeyIndex);
+                selectedKeyIndex = path.AddKey(FlightCamera.fetch.transform, keyTime);
+            }
+
+            if (GUILayout.Button("Dupe")) {
+                var keyTime = path.TimeAt(selectedKeyIndex);
+                selectedKeyIndex = path.AddKey(FlightCamera.fetch.transform, keyTime+0.01f);
+            }
+
+            if (GUILayout.Button("View")) {
+                path.Paused = true;
+                path.StartRunning(FlightCamera.fetch);
+                path.CurrentTime = path.TimeAt(selectedKeyIndex);
+            }
+
+            if (GUILayout.Button("Remove", C.DeleteButtonStyle)) {
+                path.RemoveKey(selectedKeyIndex);
+                if (selectedKeyIndex >= path.NumKeys) {
+                    selectedKeyIndex = 0;
+                }
+                UpdateSelectedKeyTime();
+            }
+
+            GUILayout.EndVertical(); // END key editing buttons
+        }
+
+        private void UpdateSelectedKeyTime() {
+            if (selectedKeyIndex >= 0 && selectedKeyIndex < path.NumKeys) {
+                selectedKeyTimeString = string.Format("{0:0.00}",
+                    path.TimeAt(selectedKeyIndex));
+            } else {
+                selectedKeyTimeString = "";
+            }
         }
     }
 }

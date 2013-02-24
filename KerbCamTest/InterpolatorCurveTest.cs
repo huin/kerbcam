@@ -37,6 +37,24 @@ namespace KerbCamTest {
         }
 
         [TestMethod]
+        public void TestMove() {
+            Assert.AreEqual(2, ic.MoveKeyAt(1, 2.5f));
+            Assert.AreEqual("zero", ic[0].value);
+            Assert.AreEqual("two", ic[1].value);
+            Assert.AreEqual("one", ic[2].value);
+            Assert.AreEqual(2.5f, ic[2].t);
+        }
+
+        [TestMethod]
+        public void TestMoveToSameIndex() {
+            Assert.AreEqual(1, ic.MoveKeyAt(1, 1.5f));
+            Assert.AreEqual("zero", ic[0].value);
+            Assert.AreEqual("one", ic[1].value);
+            Assert.AreEqual(1.5f, ic[1].t);
+            Assert.AreEqual("two", ic[2].value);
+        }
+
+        [TestMethod]
         public void TestAddStart() {
             ic.AddKey(-1f, "minus one");
             Assert.AreEqual(0, ic.FindLowerIndex(-1f));
@@ -69,9 +87,13 @@ namespace KerbCamTest {
 
             // Testing 0 to 1 values between frames that are != 1 apart.
             ic.AddKey(4f, "four");
-            Assert.AreEqual("two four 0.4", ic.Evaluate(2.2f));
+            Assert.AreEqual("two four 0.1", ic.Evaluate(2.2f));
             Assert.AreEqual("four", ic.Evaluate(4.0f));
             Assert.AreEqual("four", ic.Evaluate(4.4f));
+
+            ic.AddKey(0.5f, "half");
+            Assert.AreEqual("half one 0.0", ic.Evaluate(0.5f));
+            Assert.AreEqual("half one 0.5", ic.Evaluate(0.75f));
         }
     }
 }

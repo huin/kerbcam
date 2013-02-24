@@ -51,11 +51,20 @@ namespace KerbCam {
             get { return frames[index]; }
         }
 
-        public int Count {
+        public int NumKeys {
             get { return frames.Count; }
         }
 
-        public float Length {
+        public float MinTime {
+            get {
+                if (frames.Count == 0)
+                    return 0f;
+                else
+                    return frames[0].t;
+            }
+        }
+
+        public float MaxTime {
             get {
                 if (frames.Count == 0)
                     return 0f;
@@ -77,18 +86,27 @@ namespace KerbCam {
             float lowerT = frames[lower].t;
             float upperT = frames[lower + 1].t;
             float range = upperT - lowerT;
+
+            // Avoid nasty divide-by-zero math for keys that are very close together in time.
+            if (range < 1e-7f) {
+                range = 1e-7f;
+            }
+
             T a = frames[lower].value;
             T b = frames[lower + 1].value;
 
-            return interpolator.Evaluate(a, b, range * (t - lowerT));
+            return interpolator.Evaluate(a, b, (t - lowerT) / range);
         }
 
-        public void AddKey(float time, T value) {
+        public int AddKey(float time, T value) {
             Frame frame = new Frame(time, value);
             if (frames.Count == 0) {
                 frames.Add(frame);
+                return frames.Count - 1;
             } else {
-                frames.Insert(FindInsertIndex(time), frame);
+                int index = FindInsertIndex(time);
+                frames.Insert(index, frame);
+                return index;
             }
 
         }
@@ -133,6 +151,18 @@ namespace KerbCam {
 
         public void RemoveAt(int index) {
             frames.RemoveAt(index);
+        }
+
+        /// <summary>
+        /// Moves the key at the given index to the new time.
+        /// </summary>
+        /// <param name="index">Index of the key to move.</param>
+        /// <param name="t">Time.</param>
+        /// <returns>The new index.</returns>
+        public int MoveKeyAt(int index, float t) {
+            T value = frames[index].value;
+            frames.RemoveAt(index);
+            return AddKey(t, value);
         }
     }
 }
