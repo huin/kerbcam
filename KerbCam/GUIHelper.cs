@@ -85,8 +85,6 @@ namespace KerbCam {
         public void HandleResize() {
             Vector2 mouse = GUIUtility.ScreenToGUIPoint(new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y));
 
-            GUILayout.BeginHorizontal();
-            GUILayout.FlexibleSpace();
             Rect r = GUILayoutUtility.GetRect(gcDrag, C.WindowResizeStyle);
 
             if (Event.current.type == EventType.mouseDown && r.Contains(mouse)) {
@@ -106,7 +104,6 @@ namespace KerbCam {
             }
 
             GUI.Button(r, gcDrag, C.WindowResizeStyle);
-            GUILayout.EndHorizontal();
         }
     }
 }

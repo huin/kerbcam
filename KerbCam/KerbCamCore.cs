@@ -23,9 +23,8 @@ namespace KerbCam {
         private MainWindow mainWindow;
         private State state;
 
-        // TODO: Custom keybindings.
+        // TODO: Custom and additional keybindings.
         private Event KEY_PATH_TOGGLE_RUNNING = Event.KeyboardEvent(KeyCode.Home.ToString());
-        private Event KEY_PATH_ADD_POINT = Event.KeyboardEvent(KeyCode.Insert.ToString());
         private Event KEY_PATH_TOGGLE_WINDOW = Event.KeyboardEvent(KeyCode.F8.ToString());
 
         public void OnLevelWasLoaded() {
@@ -67,9 +66,7 @@ namespace KerbCam {
 
                 if (state.SelectedPath != null) {
                     // Events that require an active path.
-                    if (ev.Equals(KEY_PATH_ADD_POINT)) {
-                        state.SelectedPath.AddKeyToEnd(FlightCamera.fetch.transform);
-                    } else if (ev.Equals(KEY_PATH_TOGGLE_RUNNING)) {
+                    if (ev.Equals(KEY_PATH_TOGGLE_RUNNING)) {
                         state.SelectedPath.ToggleRunning(FlightCamera.fetch);
                     }
                 }
@@ -116,22 +113,12 @@ namespace KerbCam {
         }
     }
 
-    class MainWindow {
-        private const int WINDOW_ID = 73469086; // xkcd/221 compliance.
-        private State state;
-        private Version version;
-
+    abstract class BaseWindow {
         private bool isWindowOpen = false;
-        private SimpleCamPathEditor pathEditor = null;
-        private Vector2 pathListScroll = new Vector2();
-        private WindowResizer resizer;
+        protected int windowId;
 
-        public MainWindow(State state) {
-            this.state = state;
-            version = Assembly.GetCallingAssembly().GetName().Version;
-            resizer = new WindowResizer(
-                new Rect(10, 100, 200, 200),
-                new Vector2(200, 150));
+        public BaseWindow() {
+            windowId = this.GetHashCode();
         }
 
         public void ToggleWindow() {
@@ -142,23 +129,50 @@ namespace KerbCam {
             }
         }
 
-        public void ShowWindow() {
+        public virtual void ShowWindow() {
             isWindowOpen = true;
             RenderingManager.AddToPostDrawQueue(3, new Callback(DrawGUI));
-            GUI.FocusWindow(WINDOW_ID);
+            GUI.FocusWindow(windowId);
         }
 
-        public void HideWindow() {
+        public virtual void HideWindow() {
             isWindowOpen = false;
             RenderingManager.RemoveFromPostDrawQueue(3, new Callback(DrawGUI));
         }
 
-        private void DrawGUI() {
+        protected abstract void DrawGUI();
+    }
 
+    class MainWindow : BaseWindow {
+        private State state;
+        private Assembly assembly;
+
+        private SimpleCamPathEditor pathEditor = null;
+        private Vector2 pathListScroll = new Vector2();
+        private WindowResizer resizer;
+        private HelpWindow helpWindow;
+
+        public MainWindow(State state) {
+            this.state = state;
+            assembly = Assembly.GetCallingAssembly();
+            resizer = new WindowResizer(
+                new Rect(10, 100, 200, 200),
+                new Vector2(200, 150));
+            this.helpWindow = new HelpWindow(assembly);
+        }
+
+        public override void HideWindow() {
+            base.HideWindow();
+            helpWindow.HideWindow();
+        }
+
+        protected override void DrawGUI() {
             GUI.skin = HighLogic.Skin;
             resizer.Position = GUILayout.Window(
-                WINDOW_ID, resizer.Position, DoGUI,
-                "KerbCam " + version.ToString(2),
+                windowId, resizer.Position, DoGUI,
+                string.Format(
+                    "KerbCam [v{0}]",
+                    assembly.GetName().Version.ToString(2)),
                 resizer.LayoutMinWidth(),
                 resizer.LayoutMinHeight());
         }
@@ -199,34 +213,7 @@ namespace KerbCam {
                     state.SelectedPath = newPath;
                 }
 
-                // Scroll list allowing selection of an existing path.
-                pathListScroll = GUILayout.BeginScrollView(pathListScroll, false, true);
-                for (int i = 0; i < state.paths.Count; i++) {
-                    GUILayout.BeginHorizontal(); // BEGIN path widgets
-                    if (GUILayout.Button("X", C.DeleteButtonStyle)) {
-                        state.RemovePathAt(i);
-                        if (i >= state.paths.Count) {
-                            break;
-                        }
-                    }
-
-                    {
-                        var path = state.paths[i];
-                        bool isSelected = path == state.SelectedPath;
-                        bool doSelect = GUILayout.Toggle(path == state.SelectedPath, "");
-                        if (isSelected != doSelect) {
-                            if (doSelect) {
-                                state.SelectedPath = path;
-                            } else {
-                                state.SelectedPath = null;
-                            }
-                        }
-                        GUILayout.Label(path.Name);
-                    }
-                    GUILayout.FlexibleSpace();
-                    GUILayout.EndHorizontal(); // END path widgets
-                }
-                GUILayout.EndScrollView();
+                DoPathList();
 
                 GUILayout.EndVertical(); // END main controls
 
@@ -236,7 +223,113 @@ namespace KerbCam {
                 }
 
                 GUILayout.EndHorizontal(); // END left/right panes
+
+                GUILayout.BeginHorizontal();
+                GUILayout.FlexibleSpace();
+                if (GUILayout.Button("?")) {
+                    helpWindow.ToggleWindow();
+                }
                 resizer.HandleResize();
+                GUILayout.EndHorizontal();
+
+                GUILayout.EndVertical(); // END outer container
+
+                GUI.DragWindow(new Rect(0, 0, 10000, 20));
+            } catch (Exception e) {
+                Debug.LogError(e.ToString() + "\n" + e.StackTrace);
+            }
+        }
+
+        private void DoPathList() {
+            // Scroll list allowing selection of an existing path.
+            pathListScroll = GUILayout.BeginScrollView(pathListScroll, false, true);
+            for (int i = 0; i < state.paths.Count; i++) {
+                GUILayout.BeginHorizontal(); // BEGIN path widgets
+                if (GUILayout.Button("X", C.DeleteButtonStyle)) {
+                    state.RemovePathAt(i);
+                    if (i >= state.paths.Count) {
+                        break;
+                    }
+                }
+
+                {
+                    var path = state.paths[i];
+                    bool isSelected = path == state.SelectedPath;
+                    bool doSelect = GUILayout.Toggle(path == state.SelectedPath, "");
+                    if (isSelected != doSelect) {
+                        if (doSelect) {
+                            state.SelectedPath = path;
+                        } else {
+                            state.SelectedPath = null;
+                        }
+                    }
+                    GUILayout.Label(path.Name);
+                }
+                GUILayout.FlexibleSpace();
+                GUILayout.EndHorizontal(); // END path widgets
+            }
+            GUILayout.EndScrollView();
+        }
+    }
+
+    class HelpWindow : BaseWindow {
+        private Assembly assembly;
+        private WindowResizer resizer;
+        private Vector2 helpScroll = new Vector2();
+        private string helpText = string.Join("",
+            "KerbCam is a basic utility to automatically move the flight",
+            " camera along a given path.\n",
+            "\n",
+            "Note that paths are not saved, and will be lost when KSP",
+            " is restarted.",
+            "\n",
+            "Keys:\n",
+            "* [Home] Play the currently selected path.\n",
+            "* [F8] Toggle the KerbCam window.\n",
+            "\n",
+            "Source is hosted at https://github.com/huin/kerbcam under the",
+            " BSD license."
+        );
+
+        public HelpWindow(Assembly assembly) {
+            this.assembly = assembly;
+            resizer = new WindowResizer(
+                new Rect(10, 300, 300, 200),
+                new Vector2(300, 150));
+        }
+
+        protected override void DrawGUI() {
+            GUI.skin = HighLogic.Skin;
+            resizer.Position = GUILayout.Window(
+                windowId, resizer.Position, DoGUI,
+                "KerbCam Help",
+                resizer.LayoutMinWidth(),
+                resizer.LayoutMinHeight());
+        }
+
+        private void DoGUI(int windowID) {
+            try {
+                GUILayout.BeginVertical(); // BEGIN outer container
+
+                GUILayout.Label(string.Format(
+                    "KerbCam [v{0}]", assembly.GetName().Version.ToString()));
+
+                // BEGIN text scroller.
+                helpScroll = GUILayout.BeginScrollView(helpScroll);
+                GUILayout.TextArea(helpText);
+                GUILayout.EndScrollView(); // END text scroller.
+
+                GUILayout.BeginHorizontal();
+                GUILayout.FlexibleSpace();
+                if (GUILayout.Button("Report bug")) {
+                    Application.OpenURL("https://github.com/huin/kerbcam/issues/new");
+                }
+                if (GUILayout.Button("Close")) {
+                    HideWindow();
+                }
+                resizer.HandleResize();
+                GUILayout.EndHorizontal();
+
                 GUILayout.EndVertical(); // END outer container
 
                 GUI.DragWindow(new Rect(0, 0, 10000, 20));
