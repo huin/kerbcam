@@ -3,7 +3,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using KerbCam;
 
 namespace KerbCamTest {
-    public class FakeValueInterpolator : InterpolatorCurve<string>.IValueInterpolator {
+    public class FakeValueInterpolator : Interpolator<string>.IValueInterpolator {
         public string Evaluate(string a, string b, float t) {
             return string.Format("{0} {1} {2:0.0}",
                 a, b, t);
@@ -11,12 +11,12 @@ namespace KerbCamTest {
     }
 
     [TestClass]
-    public class InterpolatorCurveTest {
-        private InterpolatorCurve<String> ic;
+    public class InterpolatorTest {
+        private Interpolator<String> ic;
 
         [TestInitialize]
         public void SetUp() {
-            ic = new InterpolatorCurve<String>(new FakeValueInterpolator());
+            ic = new Interpolator<String>(new FakeValueInterpolator());
             ic.AddKey(0f, "zero");
             ic.AddKey(1f, "one");
             ic.AddKey(2f, "two");
@@ -24,9 +24,9 @@ namespace KerbCamTest {
 
         [TestMethod]
         public void TestOrdered() {
-            Assert.AreEqual(0f, ic[0].t);
-            Assert.AreEqual(1f, ic[1].t);
-            Assert.AreEqual(2f, ic[2].t);
+            Assert.AreEqual(0f, ic[0].param);
+            Assert.AreEqual(1f, ic[1].param);
+            Assert.AreEqual(2f, ic[2].param);
         }
 
         [TestMethod]
@@ -42,7 +42,7 @@ namespace KerbCamTest {
             Assert.AreEqual("zero", ic[0].value);
             Assert.AreEqual("two", ic[1].value);
             Assert.AreEqual("one", ic[2].value);
-            Assert.AreEqual(2.5f, ic[2].t);
+            Assert.AreEqual(2.5f, ic[2].param);
         }
 
         [TestMethod]
@@ -50,7 +50,7 @@ namespace KerbCamTest {
             Assert.AreEqual(1, ic.MoveKeyAt(1, 1.5f));
             Assert.AreEqual("zero", ic[0].value);
             Assert.AreEqual("one", ic[1].value);
-            Assert.AreEqual(1.5f, ic[1].t);
+            Assert.AreEqual(1.5f, ic[1].param);
             Assert.AreEqual("two", ic[2].value);
         }
 

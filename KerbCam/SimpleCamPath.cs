@@ -3,7 +3,7 @@ using UnityEngine;
 using KSP.IO;
 
 namespace KerbCam {
-    public class QuaternionSlerpInterpolator : InterpolatorCurve<Quaternion>.IValueInterpolator {
+    public class QuaternionSlerpInterpolator : Interpolator<Quaternion>.IValueInterpolator {
         public static QuaternionSlerpInterpolator instance = new QuaternionSlerpInterpolator();
 
         public Quaternion Evaluate(Quaternion a, Quaternion b, float t) {
@@ -11,7 +11,7 @@ namespace KerbCam {
         }
     }
 
-    public class Vector3LerpInterpolator : InterpolatorCurve<Vector3>.IValueInterpolator {
+    public class Vector3LerpInterpolator : Interpolator<Vector3>.IValueInterpolator {
         public static Vector3LerpInterpolator instance = new Vector3LerpInterpolator();
 
         public Vector3 Evaluate(Vector3 a, Vector3 b, float t) {
@@ -49,8 +49,8 @@ namespace KerbCam {
         // Each curve is maintained with the same number of keys in.
         // TODO: Consider Making one big type containing an array of the
         // translation and rotation for each level.
-        private InterpolatorCurve<Quaternion>[] localRotations;
-        private InterpolatorCurve<Vector3>[] localPositions;
+        private Interpolator<Quaternion>[] localRotations;
+        private Interpolator<Vector3>[] localPositions;
 
         public SimpleCamPath(String name, int numTransformLevels) {
             if (numTransformLevels < 1) {
@@ -60,12 +60,12 @@ namespace KerbCam {
             this.name = name;
             this.numTransformLevels = numTransformLevels;
 
-            localRotations = new InterpolatorCurve<Quaternion>[numTransformLevels];
-            localPositions = new InterpolatorCurve<Vector3>[numTransformLevels];
+            localRotations = new Interpolator<Quaternion>[numTransformLevels];
+            localPositions = new Interpolator<Vector3>[numTransformLevels];
             for (int i = 0; i < numTransformLevels; i++) {
-                localRotations[i] = new InterpolatorCurve<Quaternion>(
+                localRotations[i] = new Interpolator<Quaternion>(
                     QuaternionSlerpInterpolator.instance);
-                localPositions[i] = new InterpolatorCurve<Vector3>(
+                localPositions[i] = new Interpolator<Vector3>(
                     Vector3LerpInterpolator.instance);
             }
         }
@@ -96,7 +96,7 @@ namespace KerbCam {
         }
 
         public float MaxTime {
-            get { return localRotations[0].MaxTime; }
+            get { return localRotations[0].MaxParam; }
         }
 
         public int AddKey(Transform trn, float time) {
@@ -123,7 +123,7 @@ namespace KerbCam {
         }
 
         public float TimeAt(int index) {
-            return localRotations[0][index].t;
+            return localRotations[0][index].param;
         }
 
         public int MoveKeyAt(int index, float t) {
@@ -186,7 +186,7 @@ namespace KerbCam {
             lastSeenTime = worldTime;
 
             UpdateTransform();
-            if (!paused && curTime >= localRotations[0].MaxTime) {
+            if (!paused && curTime >= localRotations[0].MaxParam) {
                 StopRunning();
             }
         }

@@ -42,7 +42,7 @@
     <Compile Include="SimpleCamPath.cs" />
     <Compile Include="KerbCamCore.cs" />
     <Compile Include="GUIHelper.cs" />
-    <Compile Include="InterpolatorCurve.cs" />
+    <Compile Include="Interpolator.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
