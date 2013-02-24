@@ -321,8 +321,8 @@ namespace KerbCam {
 
                 GUILayout.BeginHorizontal();
                 GUILayout.FlexibleSpace();
-                if (GUILayout.Button("Report bug")) {
-                    Application.OpenURL("https://github.com/huin/kerbcam/issues/new");
+                if (GUILayout.Button("Report issue")) {
+                    Application.OpenURL("https://github.com/huin/kerbcam/issues");
                 }
                 if (GUILayout.Button("Close")) {
                     HideWindow();
