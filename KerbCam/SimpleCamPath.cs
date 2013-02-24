@@ -188,23 +188,29 @@ namespace KerbCam {
         }
 
         public void DoGUI() {
-            // TODO: Proper GUI etc. so that timings can be tweaked.
-            // For now, each key is one second apart.
+            // TODO: Key timing tweaking UI. For now, each key is created one second apart.
+
             GUILayout.BeginVertical();
             GUILayout.Label(
                 string.Format("Simple camera path [{0} keys]", path.NumKeys));
 
-            GUILayout.BeginHorizontal();
+            GUILayout.BeginHorizontal(); // BEGIN name field
             GUILayout.Label("Name:");
             path.Name = GUILayout.TextField(path.Name);
-            GUILayout.EndHorizontal();
+            GUILayout.EndHorizontal(); // END name field
 
-            bool shouldRun = GUILayout.Toggle(path.IsRunning, "Running");
+            GUILayout.BeginHorizontal(); // BEGIN playback controls
+            bool shouldRun = GUILayout.Toggle(path.IsRunning, "");
+            GUILayout.Label("Play");
             if (path.IsRunning != shouldRun) {
                 path.ToggleRunning(FlightCamera.fetch);
             }
-            path.Paused = GUILayout.Toggle(path.Paused, "Paused");
+            path.Paused = GUILayout.Toggle(path.Paused, "");
+            GUILayout.Label("Pause");
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal(); // END playback controls
 
+            // BEGIN Path keys list and scroller.
             scrollPosition = GUILayout.BeginScrollView(scrollPosition, false, true);
             for (int i = 0; i < path.NumKeys; i++) {
                 GUILayout.BeginHorizontal();
@@ -214,15 +220,16 @@ namespace KerbCam {
                         break;
                     }
                 }
-                if (GUILayout.Button("View", C.CompactButtonStyle)) {
+                if (GUILayout.Button("View")) {
                     path.CurrentTime = path.TimeAt(i);
                 }
                 GUILayout.Label(
-                    string.Format("#{0} @{1}s", i, path.TimeAt(i)),
-                    C.CompactLabelStyle);
+                    string.Format("#{0} @{1}s", i, path.TimeAt(i)));
+                GUILayout.FlexibleSpace();
                 GUILayout.EndHorizontal();
             }
             GUILayout.EndScrollView();
+            // END Path keys list and scroller.
 
             GUILayout.EndVertical();
         }

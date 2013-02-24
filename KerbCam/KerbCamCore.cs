@@ -104,10 +104,23 @@ namespace KerbCam {
         }
     }
 
+    /// <summary>
+    /// Central stored state of KerbCam.
+    /// </summary>
     class State {
         public SimpleCamPath selectedPath;
         public List<SimpleCamPath> paths = new List<SimpleCamPath>();
         public int numCreatedPaths = 0;
+
+        public void RemovePathAt(int index) {
+            var path = paths[index];
+            if (path == selectedPath) {
+                selectedPath.StopRunning();
+                selectedPath = null;
+            }
+            paths.RemoveAt(index);
+        }
+
 
         public void Stop() {
             if (selectedPath != null)
@@ -117,15 +130,18 @@ namespace KerbCam {
 
     class MainWindow {
         private const int WINDOW_ID = 73469086; // xkcd/221 compliance.
+        private State state;
+
         private bool isWindowOpen = false;
         private SimpleCamPathEditor pathEditor = null;
-        private Rect windowPos;
-        private State state;
         private Vector2 pathListScroll = new Vector2();
+        private WindowResizer resizer;
 
         public MainWindow(State state) {
             this.state = state;
-            windowPos = new Rect(Screen.width / 2, Screen.height / 2, 200, 300);
+            resizer = new WindowResizer(
+                new Rect(10, 100, 200, 200),
+                new Vector2(200, 150));
         }
 
         public void ToggleWindow() {
@@ -149,10 +165,9 @@ namespace KerbCam {
 
         private void DrawGUI() {
             GUI.skin = HighLogic.Skin;
-            windowPos = GUILayout.Window(
-                WINDOW_ID, windowPos, DoGUI, "KerbCam",
-                GUILayout.MinWidth(200),
-                GUILayout.MinHeight(300));
+            resizer.Position = GUILayout.Window(
+                WINDOW_ID, resizer.Position, DoGUI, "KerbCam",
+                resizer.LayoutMinWidth(), resizer.LayoutMinHeight());
         }
 
         private void DoGUI(int windowID) {
@@ -160,14 +175,23 @@ namespace KerbCam {
                 C.InitGUIConstants();
 
                 if (state.selectedPath != null) {
+                    // A path is selected.
                     if (pathEditor == null || !pathEditor.IsForPath(state.selectedPath)) {
+                        // Selected path has changed.
                         pathEditor = state.selectedPath.MakeEditor();
-                        windowPos.width = 500;
+                        resizer.MinWidth = 500;
+                        resizer.MinHeight = 200;
                     }
                 } else {
-                    pathEditor = null;
-                    windowPos.width = 200;
+                    // No path is selected.
+                    if (pathEditor != null) {
+                        pathEditor = null;
+                        resizer.MinWidth = 200;
+                        resizer.MinHeight = 150;
+                    }
                 }
+
+                GUILayout.BeginVertical(); // BEGIN outer container
 
                 GUILayout.BeginHorizontal(); // BEGIN left/right panes
 
@@ -183,13 +207,25 @@ namespace KerbCam {
 
                 // Scroll list allowing selection of an existing path.
                 pathListScroll = GUILayout.BeginScrollView(pathListScroll, false, true);
-                foreach (var path in state.paths) {
-                    if (GUILayout.Toggle(path == state.selectedPath, path.Name)) {
+                for (int i = 0; i < state.paths.Count; i++) {
+                    GUILayout.BeginHorizontal(); // BEGIN path widgets
+                    if (GUILayout.Button("X", C.DeleteButtonStyle)) {
+                        state.RemovePathAt(i);
+                        if (i >= state.paths.Count) {
+                            break;
+                        }
+                    }
+
+                    var path = state.paths[i];
+                    if (GUILayout.Toggle(path == state.selectedPath, "")) {
                         if (state.selectedPath != path) {
                             state.selectedPath.StopRunning();
                             state.selectedPath = path;
                         }
                     }
+                    GUILayout.Label(path.Name);
+                    GUILayout.FlexibleSpace();
+                    GUILayout.EndHorizontal(); // END path widgets
                 }
                 GUILayout.EndScrollView();
 
@@ -201,6 +237,8 @@ namespace KerbCam {
                 }
 
                 GUILayout.EndHorizontal(); // END left/right panes
+                resizer.HandleResize();
+                GUILayout.EndVertical(); // END outer container
 
                 GUI.DragWindow(new Rect(0, 0, 10000, 20));
             } catch (Exception e) {
