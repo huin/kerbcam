@@ -148,12 +148,12 @@ namespace KerbCam {
         public interface IValueInterpolator {
             /**
              * Interpolates between two values, param is scaled 
-             * <param name="a">The value for param=0.</param>
-             * <param name="b">The value for param=1.</param>
-             * <param name="param">The interpolation parameter, this varies
+             * <param name="a">The value for t=0.</param>
+             * <param name="b">The value for t=1.</param>
+             * <param name="t">The interpolation parameter, this varies
              * between 0 and 1.</param>
              */
-            Value Evaluate(Value a, Value b, float param);
+            Value Evaluate(Value a, Value b, float t);
         }
 
         private IValueInterpolator interpolator;
@@ -181,10 +181,80 @@ namespace KerbCam {
                 range = 1e-7f;
             }
 
-            Value a = this[lower].value;
-            Value b = this[lower + 1].value;
+            return interpolator.Evaluate(
+                this[lower].value, this[lower + 1].value,
+                (param - lowerT) / range);
+        }
+    }
 
-            return interpolator.Evaluate(a, b, (param - lowerT) / range);
+    /// <summary>
+    /// Interpolator that interpolates using 4 points.
+    /// </summary>
+    /// <typeparam name="Value"></typeparam>
+    public class Interpolator4<Value> : ParamSeries<Value> {
+        public interface IValueInterpolator {
+            /**
+             * Interpolates between two values, with the surrounding values, param is scaled 
+             * <param name="am">The value prior to a.</param>
+             * <param name="haveAm">Is am present.</param>
+             * <param name="a">The value for t=0.</param>
+             * <param name="b">The value for t=1.</param>
+             * <param name="bm">The value following b.</param>
+             * <param name="haveBm">Is bm present.</param>
+             * <param name="t">The interpolation parameter, this varies
+             * between 0 and 1.</param>
+             */
+            Value Evaluate(Key<Value> am, bool haveAm, Key<Value> a, Key<Value> b, Key<Value> bm, bool haveBm, float t);
+        }
+
+        private IValueInterpolator interpolator;
+
+        public Interpolator4(IValueInterpolator interpolator) {
+            this.interpolator = interpolator;
+        }
+
+        public Value Evaluate(float param) {
+            if (Count == 0)
+                return default(Value);
+
+            int lower = FindLowerIndex(param);
+            if (lower < 0)
+                return this[0].value;
+            if (lower >= Count - 1)
+                return this[Count - 1].value;
+
+            float lowerT = this[lower].param;
+            float upperT = this[lower + 1].param;
+            float range = upperT - lowerT;
+
+            // Avoid nasty divide-by-zero math for keys that are very close together in param.
+            if (range < 1e-7f) {
+                range = 1e-7f;
+            }
+
+            int amIndex = lower - 1;
+            bool haveAm = amIndex >= 0;
+            Key<Value> am;
+            if (haveAm) {
+                am = this[amIndex];
+            } else {
+                am = default(Key<Value>);
+            }
+
+            int bmIndex = lower + 2;
+            bool haveBm = bmIndex >= 0;
+            Key<Value> bm;
+            if (haveBm) {
+                bm = this[bmIndex];
+            } else {
+                bm = default(Key<Value>);
+            }
+
+            return interpolator.Evaluate(
+                am, haveAm,
+                this[lower], this[lower + 1],
+                bm, haveBm,
+                (param - lowerT) / range);
         }
     }
 }
