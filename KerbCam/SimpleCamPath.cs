@@ -3,7 +3,7 @@ using UnityEngine;
 using KSP.IO;
 
 namespace KerbCam {
-    public class QuaternionSlerpInterpolator : Interpolator<Quaternion>.IValueInterpolator {
+    public class QuaternionSlerpInterpolator : Interpolator2<Quaternion>.IValueInterpolator {
         public static QuaternionSlerpInterpolator instance = new QuaternionSlerpInterpolator();
 
         public Quaternion Evaluate(Quaternion a, Quaternion b, float t) {
@@ -11,7 +11,7 @@ namespace KerbCam {
         }
     }
 
-    public class Vector3LerpInterpolator : Interpolator<Vector3>.IValueInterpolator {
+    public class Vector3LerpInterpolator : Interpolator2<Vector3>.IValueInterpolator {
         public static Vector3LerpInterpolator instance = new Vector3LerpInterpolator();
 
         public Vector3 Evaluate(Vector3 a, Vector3 b, float t) {
@@ -49,8 +49,8 @@ namespace KerbCam {
         // Each curve is maintained with the same number of keys in.
         // TODO: Consider Making one big type containing an array of the
         // translation and rotation for each level.
-        private Interpolator<Quaternion>[] localRotations;
-        private Interpolator<Vector3>[] localPositions;
+        private Interpolator2<Quaternion>[] localRotations;
+        private Interpolator2<Vector3>[] localPositions;
 
         public SimpleCamPath(String name, int numTransformLevels) {
             if (numTransformLevels < 1) {
@@ -60,12 +60,12 @@ namespace KerbCam {
             this.name = name;
             this.numTransformLevels = numTransformLevels;
 
-            localRotations = new Interpolator<Quaternion>[numTransformLevels];
-            localPositions = new Interpolator<Vector3>[numTransformLevels];
+            localRotations = new Interpolator2<Quaternion>[numTransformLevels];
+            localPositions = new Interpolator2<Vector3>[numTransformLevels];
             for (int i = 0; i < numTransformLevels; i++) {
-                localRotations[i] = new Interpolator<Quaternion>(
+                localRotations[i] = new Interpolator2<Quaternion>(
                     QuaternionSlerpInterpolator.instance);
-                localPositions[i] = new Interpolator<Vector3>(
+                localPositions[i] = new Interpolator2<Vector3>(
                     Vector3LerpInterpolator.instance);
             }
         }
@@ -92,11 +92,11 @@ namespace KerbCam {
         }
 
         public int NumKeys {
-            get { return localRotations[0].Keys.Count; }
+            get { return localRotations[0].Count; }
         }
 
         public float MaxTime {
-            get { return localRotations[0].Keys.MaxParam; }
+            get { return localRotations[0].MaxParam; }
         }
 
         public int AddKey(Transform trn, float time) {
@@ -106,8 +106,8 @@ namespace KerbCam {
                 if (currentTrn == null) {
                     throw new BadTransformCountError(i);
                 }
-                newIndex = localRotations[i].Keys.AddKey(time, currentTrn.localRotation);
-                localPositions[i].Keys.AddKey(time, currentTrn.localPosition);
+                newIndex = localRotations[i].AddKey(time, currentTrn.localRotation);
+                localPositions[i].AddKey(time, currentTrn.localPosition);
 
                 currentTrn = currentTrn.parent;
             }
@@ -115,7 +115,7 @@ namespace KerbCam {
         }
 
         public void AddKeyToEnd(Transform trn) {
-            if (localRotations[0].Keys.Count > 0) {
+            if (localRotations[0].Count > 0) {
                 AddKey(trn, MaxTime + 1f);
             } else {
                 AddKey(trn, 0f);
@@ -123,24 +123,24 @@ namespace KerbCam {
         }
 
         public float TimeAt(int index) {
-            return localRotations[0].Keys[index].param;
+            return localRotations[0][index].param;
         }
 
         public int MoveKeyAt(int index, float t) {
             int newIndex = 0;
             for (int i = 0; i < localRotations.Length; i++) {
-                newIndex = localRotations[i].Keys.MoveKeyAt(index, t);
-                localPositions[i].Keys.MoveKeyAt(index, t);
+                newIndex = localRotations[i].MoveKeyAt(index, t);
+                localPositions[i].MoveKeyAt(index, t);
             }
             return newIndex;
         }
 
         public void RemoveKey(int index) {
             foreach (var curve in localRotations) {
-                curve.Keys.RemoveAt(index);
+                curve.RemoveAt(index);
             }
             foreach (var curve in localPositions) {
-                curve.Keys.RemoveAt(index);
+                curve.RemoveAt(index);
             }
         }
 
@@ -189,7 +189,7 @@ namespace KerbCam {
             lastSeenTime = worldTime;
 
             UpdateTransform();
-            if (!paused && curTime >= localRotations[0].Keys.MaxParam) {
+            if (!paused && curTime >= localRotations[0].MaxParam) {
                 StopRunning();
             }
         }

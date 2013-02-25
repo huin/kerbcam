@@ -4,6 +4,29 @@ using UnityEngine;
 
 namespace KerbCam {
 
+    public class CubicHermiteSpline {
+        /// <summary>
+        /// Interpolates a value using a the Cubic Hermite spline formula.
+        /// http://en.wikipedia.org/wiki/Cubic_Hermite_spline
+        /// </summary>
+        /// <param name="t">The parameter, this should typically be between 0 and 1.</param>
+        /// <param name="p0">The value at t=0.</param>
+        /// <param name="m0">The tangent at t=0.</param>
+        /// <param name="p1">The value at t=1.</param>
+        /// <param name="m1">The tangent at t=1.</param>
+        /// <returns>The interpolated value.</returns>
+        public static float P(float t, float p0, float m0, float p1, float m1) {
+            float t2 = t * t;
+            float t3 = t2 * t;
+            return (
+                ((2 * t3) - (3 * t2) + 1) * p0
+                + (t3 - (2 * t2) + t) * m0
+                + ((-2 * t3) + (3 * t2)) * p1
+                + (t3 - t2) * m1
+                );
+        }
+    }
+
     public struct Key<Value> {
         public float param;
         public Value value;
@@ -20,42 +43,42 @@ namespace KerbCam {
 
     public class ParamSeries<Value> {
         // frames is maintained sorted on Frame.param.
-        private List<Key<Value>> frames = new List<Key<Value>>();
+        private List<Key<Value>> keys = new List<Key<Value>>();
 
         public Key<Value> this[int index] {
-            get { return frames[index]; }
+            get { return keys[index]; }
         }
 
         public int Count {
-            get { return frames.Count; }
+            get { return keys.Count; }
         }
 
         public float MinParam {
             get {
-                if (frames.Count == 0)
+                if (keys.Count == 0)
                     return 0f;
                 else
-                    return frames[0].param;
+                    return keys[0].param;
             }
         }
 
         public float MaxParam {
             get {
-                if (frames.Count == 0)
+                if (keys.Count == 0)
                     return 0f;
                 else
-                    return frames[frames.Count - 1].param;
+                    return keys[keys.Count - 1].param;
             }
         }
 
         public int AddKey(float param, Value value) {
             Key<Value> frame = new Key<Value>(param, value);
-            if (frames.Count == 0) {
-                frames.Add(frame);
-                return frames.Count - 1;
+            if (keys.Count == 0) {
+                keys.Add(frame);
+                return keys.Count - 1;
             } else {
                 int index = FindInsertIndex(param);
-                frames.Insert(index, frame);
+                keys.Insert(index, frame);
                 return index;
             }
 
@@ -64,32 +87,32 @@ namespace KerbCam {
         private int FindInsertIndex(float param) {
             var v = new SortedList<float, Value>();
 
-            if (frames.Count == 0) {
+            if (keys.Count == 0) {
                 return 0;
             }
             int lowerIndex = FindLowerIndex(param);
             return lowerIndex + 1;
         }
 
-        // FindIndex returns the highest index such that values[index].param <= param.
-        // Returns -1 if param < values[0].param.
+        // FindIndex returns the highest index such that this[index].param <= param.
+        // Returns -1 if param < this[0].param.
         public int FindLowerIndex(float param) {
-            return BinSearchFindLowerIndex(param, 0, frames.Count - 1);
+            return BinSearchFindLowerIndex(param, 0, keys.Count - 1);
         }
 
         private int BinSearchFindLowerIndex(float param, int lower, int upper) {
-            float upperParam = frames[upper].param;
+            float upperParam = keys[upper].param;
             if (param >= upperParam)
                 return upper;
 
-            float lowerParam = frames[lower].param;
+            float lowerParam = keys[lower].param;
             if (param < lowerParam)
                 return lower - 1;
             else if (upper - lower == 1)
                 return lower;
 
             int midIndex = lower + (upper - lower) / 2;
-            float midParam = frames[midIndex].param;
+            float midParam = keys[midIndex].param;
             if (param == midParam) {
                 return midIndex;
             } else if (param < midParam) {
@@ -100,7 +123,7 @@ namespace KerbCam {
         }
 
         public void RemoveAt(int index) {
-            frames.RemoveAt(index);
+            keys.RemoveAt(index);
         }
 
         /// <summary>
@@ -110,13 +133,17 @@ namespace KerbCam {
         /// <param name="param">Parameter.</param>
         /// <returns>The new index.</returns>
         public int MoveKeyAt(int index, float param) {
-            Value value = frames[index].value;
-            frames.RemoveAt(index);
+            Value value = keys[index].value;
+            keys.RemoveAt(index);
             return AddKey(param, value);
         }
     }
 
-    public class Interpolator<Value> {
+    /// <summary>
+    /// Interpolator that interpolates using 2 points.
+    /// </summary>
+    /// <typeparam name="Value"></typeparam>
+    public class Interpolator2<Value> : ParamSeries<Value> {
 
         public interface IValueInterpolator {
             /**
@@ -129,30 +156,24 @@ namespace KerbCam {
             Value Evaluate(Value a, Value b, float param);
         }
 
-        private ParamSeries<Value> paramSeries = new ParamSeries<Value>();
-
         private IValueInterpolator interpolator;
 
-        public Interpolator(IValueInterpolator interpolator) {
+        public Interpolator2(IValueInterpolator interpolator) {
             this.interpolator = interpolator;
         }
 
-        public ParamSeries<Value> Keys {
-            get { return paramSeries; }
-        }
-
         public Value Evaluate(float param) {
-            if (paramSeries.Count == 0)
+            if (Count == 0)
                 return default(Value);
 
-            int lower = paramSeries.FindLowerIndex(param);
+            int lower = FindLowerIndex(param);
             if (lower < 0)
-                return paramSeries[0].value;
-            if (lower >= paramSeries.Count - 1)
-                return paramSeries[paramSeries.Count - 1].value;
+                return this[0].value;
+            if (lower >= Count - 1)
+                return this[Count - 1].value;
 
-            float lowerT = paramSeries[lower].param;
-            float upperT = paramSeries[lower + 1].param;
+            float lowerT = this[lower].param;
+            float upperT = this[lower + 1].param;
             float range = upperT - lowerT;
 
             // Avoid nasty divide-by-zero math for keys that are very close together in param.
@@ -160,8 +181,8 @@ namespace KerbCam {
                 range = 1e-7f;
             }
 
-            Value a = paramSeries[lower].value;
-            Value b = paramSeries[lower + 1].value;
+            Value a = this[lower].value;
+            Value b = this[lower + 1].value;
 
             return interpolator.Evaluate(a, b, (param - lowerT) / range);
         }
