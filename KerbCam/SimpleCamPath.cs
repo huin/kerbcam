@@ -19,6 +19,47 @@ namespace KerbCam {
         }
     }
 
+    public class TransformPoint {
+        public Vector3 position;
+        public Quaternion rotation;
+    }
+
+    public class TransformPointInterpolator : Interpolator4<TransformPoint>.IValueInterpolator {
+        public TransformPoint Evaluate(
+            Key<TransformPoint> am, bool haveAm,
+            Key<TransformPoint> a,
+            Key<TransformPoint> b,
+            Key<TransformPoint> bm, bool haveBm,
+            float t
+            ) {
+
+            Vector3 m0 = new Vector3(0, 0, 0);
+            if (haveAm) {
+                float dp = a.param - am.param;
+                m0.x = (a.value.position.x - am.value.position.x) / dp;
+                m0.y = (a.value.position.y - am.value.position.y) / dp;
+                m0.z = (a.value.position.z - am.value.position.z) / dp;
+            }
+            Vector3 m1 = new Vector3(0, 0, 0);
+            if (haveBm) {
+                float dp = a.param - am.param;
+                m1.x = (a.value.position.x - am.value.position.x) / dp;
+                m1.y = (a.value.position.y - am.value.position.y) / dp;
+                m1.z = (a.value.position.z - am.value.position.z) / dp;
+            }
+
+            return new TransformPoint {
+                position = new Vector3 {
+                    x = CubicHermiteSpline.P(t, a.value.position.x, m0.x, b.value.position.x, m1.x),
+                    y = CubicHermiteSpline.P(t, a.value.position.y, m0.y, b.value.position.y, m1.y),
+                    z = CubicHermiteSpline.P(t, a.value.position.z, m0.z, b.value.position.z, m1.z)
+                },
+                // TODO: Smoother Quaternion interpolation.
+                rotation = Quaternion.Slerp(a.value.rotation, b.value.rotation, t)
+            };
+        }
+    }
+
     public class BadTransformCountError : Exception {
         public int numTransformLevels;
 
@@ -360,7 +401,7 @@ namespace KerbCam {
 
             if (GUILayout.Button("Dupe")) {
                 var keyTime = path.TimeAt(selectedKeyIndex);
-                selectedKeyIndex = path.AddKey(FlightCamera.fetch.transform, keyTime+0.01f);
+                selectedKeyIndex = path.AddKey(FlightCamera.fetch.transform, keyTime + 0.01f);
             }
 
             if (GUILayout.Button("View")) {
