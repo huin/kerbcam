@@ -207,8 +207,7 @@ namespace KerbCam {
                 if (GUILayout.Button("New simple path")) {
                     state.numCreatedPaths++;
                     var newPath = new SimpleCamPath(
-                        "Path #" + state.numCreatedPaths,
-                        2);
+                        "Path #" + state.numCreatedPaths);
                     state.paths.Add(newPath);
                     state.SelectedPath = newPath;
                 }

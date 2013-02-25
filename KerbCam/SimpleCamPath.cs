@@ -25,6 +25,8 @@ namespace KerbCam {
     }
 
     public class TransformPointInterpolator : Interpolator4<TransformPoint>.IValueInterpolator {
+        public static TransformPointInterpolator instance = new TransformPointInterpolator();
+
         public TransformPoint Evaluate(
             Key<TransformPoint> am, bool haveAm,
             Key<TransformPoint> a,
@@ -32,6 +34,10 @@ namespace KerbCam {
             Key<TransformPoint> bm, bool haveBm,
             float t
             ) {
+
+            Debug.Log(string.Format(
+                "am={0} haveAM={1} a={2} b={3} bm={4} haveBm={5}",
+                am.value, haveAm, a, b, bm.value, haveBm));
 
             Vector3 m0 = new Vector3(0, 0, 0);
             if (haveAm) {
@@ -42,10 +48,10 @@ namespace KerbCam {
             }
             Vector3 m1 = new Vector3(0, 0, 0);
             if (haveBm) {
-                float dp = a.param - am.param;
-                m1.x = (a.value.position.x - am.value.position.x) / dp;
-                m1.y = (a.value.position.y - am.value.position.y) / dp;
-                m1.z = (a.value.position.z - am.value.position.z) / dp;
+                float dp = b.param - bm.param;
+                m1.x = (b.value.position.x - bm.value.position.x) / dp;
+                m1.y = (b.value.position.y - bm.value.position.y) / dp;
+                m1.z = (b.value.position.z - bm.value.position.z) / dp;
             }
 
             return new TransformPoint {
@@ -84,31 +90,14 @@ namespace KerbCam {
 
         // Initialized from the constructor.
         private string name;
-        private int numTransformLevels;
 
-        // The interpolation curves for each transformation level.
-        // Each curve is maintained with the same number of keys in.
-        // TODO: Consider Making one big type containing an array of the
-        // translation and rotation for each level.
-        private Interpolator2<Quaternion>[] localRotations;
-        private Interpolator2<Vector3>[] localPositions;
+        // The interpolation curves for the transformations.
+        private Interpolator4<TransformPoint> transformsCurve =
+            new Interpolator4<TransformPoint>(
+                TransformPointInterpolator.instance);
 
-        public SimpleCamPath(String name, int numTransformLevels) {
-            if (numTransformLevels < 1) {
-                throw new BadTransformCountError(numTransformLevels);
-            }
-
+        public SimpleCamPath(String name) {
             this.name = name;
-            this.numTransformLevels = numTransformLevels;
-
-            localRotations = new Interpolator2<Quaternion>[numTransformLevels];
-            localPositions = new Interpolator2<Vector3>[numTransformLevels];
-            for (int i = 0; i < numTransformLevels; i++) {
-                localRotations[i] = new Interpolator2<Quaternion>(
-                    QuaternionSlerpInterpolator.instance);
-                localPositions[i] = new Interpolator2<Vector3>(
-                    Vector3LerpInterpolator.instance);
-            }
         }
 
         public bool IsRunning {
@@ -133,30 +122,28 @@ namespace KerbCam {
         }
 
         public int NumKeys {
-            get { return localRotations[0].Count; }
+            get { return transformsCurve.Count; }
         }
 
         public float MaxTime {
-            get { return localRotations[0].MaxParam; }
+            get { return transformsCurve.Count; }
+        }
+
+        private TransformPoint MakeTransformPoint(Transform trn) {
+            return new TransformPoint {
+                position = trn.position - trn.parent.parent.position,
+                rotation = trn.parent.localRotation * trn.localRotation
+            };
         }
 
         public int AddKey(Transform trn, float time) {
-            var currentTrn = trn;
-            int newIndex = -1;
-            for (int i = 0; i < localRotations.Length; i++) {
-                if (currentTrn == null) {
-                    throw new BadTransformCountError(i);
-                }
-                newIndex = localRotations[i].AddKey(time, currentTrn.localRotation);
-                localPositions[i].AddKey(time, currentTrn.localPosition);
-
-                currentTrn = currentTrn.parent;
-            }
-            return newIndex;
+            var v = MakeTransformPoint(trn);
+            Debug.Log(string.Format("{0} {1}", v.position, v.rotation));
+            return transformsCurve.AddKey(time, v);
         }
 
         public void AddKeyToEnd(Transform trn) {
-            if (localRotations[0].Count > 0) {
+            if (transformsCurve.Count > 0) {
                 AddKey(trn, MaxTime + 1f);
             } else {
                 AddKey(trn, 0f);
@@ -164,25 +151,15 @@ namespace KerbCam {
         }
 
         public float TimeAt(int index) {
-            return localRotations[0][index].param;
+            return transformsCurve[index].param;
         }
 
         public int MoveKeyAt(int index, float t) {
-            int newIndex = 0;
-            for (int i = 0; i < localRotations.Length; i++) {
-                newIndex = localRotations[i].MoveKeyAt(index, t);
-                localPositions[i].MoveKeyAt(index, t);
-            }
-            return newIndex;
+            return transformsCurve.MoveKeyAt(index, t);
         }
 
         public void RemoveKey(int index) {
-            foreach (var curve in localRotations) {
-                curve.RemoveAt(index);
-            }
-            foreach (var curve in localPositions) {
-                curve.RemoveAt(index);
-            }
+            transformsCurve.RemoveAt(index);
         }
 
         public void ToggleRunning(FlightCamera cam) {
@@ -230,22 +207,20 @@ namespace KerbCam {
             lastSeenTime = worldTime;
 
             UpdateTransform();
-            if (!paused && curTime >= localRotations[0].MaxParam) {
+            if (!paused && curTime >= transformsCurve.MaxParam) {
                 StopRunning();
             }
         }
 
         private void UpdateTransform() {
-            var currentTrn = runningCam.transform;
-            for (int i = 0; i < localRotations.Length; i++) {
-                if (currentTrn == null) {
-                    throw new BadTransformCountError(i);
-                }
-                var r = currentTrn.localRotation = localRotations[i].Evaluate(curTime);
-                currentTrn.localPosition = localPositions[i].Evaluate(curTime);
-
-                currentTrn = currentTrn.parent;
-            }
+            Transform camTrn2 = runningCam.transform;
+            Transform camTrn1 = camTrn2.parent;
+            
+            TransformPoint curTrnPoint = transformsCurve.Evaluate(curTime);
+            camTrn1.localRotation = Quaternion.identity;
+            camTrn1.localPosition = curTrnPoint.position;
+            camTrn2.localRotation = curTrnPoint.rotation;
+            camTrn2.localPosition = Vector3.zero;
         }
 
         public SimpleCamPathEditor MakeEditor() {

@@ -242,7 +242,7 @@ namespace KerbCam {
             }
 
             int bmIndex = lower + 2;
-            bool haveBm = bmIndex >= 0;
+            bool haveBm = bmIndex < Count;
             Key<Value> bm;
             if (haveBm) {
                 bm = this[bmIndex];
