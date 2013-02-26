@@ -131,14 +131,13 @@ namespace KerbCam {
 
         private TransformPoint MakeTransformPoint(Transform trn) {
             return new TransformPoint {
-                position = trn.position - trn.parent.parent.position,
+                position = trn.parent.localRotation * trn.localPosition,
                 rotation = trn.parent.localRotation * trn.localRotation
             };
         }
 
         public int AddKey(Transform trn, float time) {
             var v = MakeTransformPoint(trn);
-            Debug.Log(string.Format("{0} {1}", v.position, v.rotation));
             return transformsCurve.AddKey(time, v);
         }
 
@@ -372,11 +371,6 @@ namespace KerbCam {
                 var keyTime = path.TimeAt(selectedKeyIndex);
                 path.RemoveKey(selectedKeyIndex);
                 selectedKeyIndex = path.AddKey(FlightCamera.fetch.transform, keyTime);
-            }
-
-            if (GUILayout.Button("Dupe")) {
-                var keyTime = path.TimeAt(selectedKeyIndex);
-                selectedKeyIndex = path.AddKey(FlightCamera.fetch.transform, keyTime + 0.01f);
             }
 
             if (GUILayout.Button("View")) {
