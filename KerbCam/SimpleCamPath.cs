@@ -35,10 +35,6 @@ namespace KerbCam {
             float t
             ) {
 
-            Debug.Log(string.Format(
-                "am={0} haveAM={1} a={2} b={3} bm={4} haveBm={5}",
-                am.value, haveAm, a, b, bm.value, haveBm));
-
             Vector3 m0 = new Vector3(0, 0, 0);
             if (haveAm) {
                 float dp = a.param - am.param;
