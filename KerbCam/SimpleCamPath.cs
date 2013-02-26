@@ -3,22 +3,6 @@ using UnityEngine;
 using KSP.IO;
 
 namespace KerbCam {
-    public class QuaternionSlerpInterpolator : Interpolator2<Quaternion>.IValueInterpolator {
-        public static QuaternionSlerpInterpolator instance = new QuaternionSlerpInterpolator();
-
-        public Quaternion Evaluate(Quaternion a, Quaternion b, float t) {
-            return Quaternion.Slerp(a, b, t);
-        }
-    }
-
-    public class Vector3LerpInterpolator : Interpolator2<Vector3>.IValueInterpolator {
-        public static Vector3LerpInterpolator instance = new Vector3LerpInterpolator();
-
-        public Vector3 Evaluate(Vector3 a, Vector3 b, float t) {
-            return Vector3.Lerp(a, b, t);
-        }
-    }
-
     public class TransformPoint {
         public Vector3 position;
         public Quaternion rotation;
