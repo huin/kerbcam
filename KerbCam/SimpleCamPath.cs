@@ -19,6 +19,24 @@ namespace KerbCam {
             float t
             ) {
 
+            // TODO: Smoother Quaternion interpolation.
+            //rot = Quaternion.Slerp(a.value.rotation, b.value.rotation, t);
+
+            return new TransformPoint {
+                position = EvaluatePosition(
+                    ref am, haveAm, ref a, ref b, ref bm, haveBm, t),
+                rotation = EvaluateRotation(
+                    ref am, haveAm, ref a, ref b, ref bm, haveBm, t)
+            };
+        }
+
+        private static Vector3 EvaluatePosition(
+            ref Key<TransformPoint> am, bool haveAm,
+            ref Key<TransformPoint> a,
+            ref Key<TransformPoint> b,
+            ref Key<TransformPoint> bm, bool haveBm,
+            float t) {
+
             Vector3 m0 = new Vector3(0, 0, 0);
             if (haveAm) {
                 float dp = a.param - am.param;
@@ -33,16 +51,118 @@ namespace KerbCam {
                 m1.y = (b.value.position.y - bm.value.position.y) / dp;
                 m1.z = (b.value.position.z - bm.value.position.z) / dp;
             }
-
-            return new TransformPoint {
-                position = new Vector3 {
-                    x = CubicHermiteSpline.P(t, a.value.position.x, m0.x, b.value.position.x, m1.x),
-                    y = CubicHermiteSpline.P(t, a.value.position.y, m0.y, b.value.position.y, m1.y),
-                    z = CubicHermiteSpline.P(t, a.value.position.z, m0.z, b.value.position.z, m1.z)
-                },
-                // TODO: Smoother Quaternion interpolation.
-                rotation = Quaternion.Slerp(a.value.rotation, b.value.rotation, t)
+            Vector3 position = new Vector3 {
+                x = CubicHermiteSpline.P(t, a.value.position.x, m0.x, b.value.position.x, m1.x),
+                y = CubicHermiteSpline.P(t, a.value.position.y, m0.y, b.value.position.y, m1.y),
+                z = CubicHermiteSpline.P(t, a.value.position.z, m0.z, b.value.position.z, m1.z)
             };
+            return position;
+        }
+
+        private static Quaternion EvaluateRotationFirstTry(
+            ref Key<TransformPoint> am, bool haveAm,
+            ref Key<TransformPoint> a,
+            ref Key<TransformPoint> b,
+            ref Key<TransformPoint> bm, bool haveBm,
+            float t) {
+
+            float angleA, angleB;
+
+            Vector3 va, vb;
+            a.value.rotation.ToAngleAxis(out angleA, out va);
+            b.value.rotation.ToAngleAxis(out angleB, out vb);
+            float angleBetweenRotAxes = Vector3.Angle(va, vb);
+            Vector3 rotRotAxis = Vector3.Cross(va, vb);
+
+            // rotRot rotates va to vb for t = 0 to 1.
+            Quaternion rotRot = Quaternion.AngleAxis(angleBetweenRotAxes * t, rotRotAxis);
+            Vector3 rotAxis = rotRot * va;
+
+            // TODO: Consider wrapping crossing 0/360 degrees.
+            float angleRange = angleB - angleA;
+
+            return Quaternion.AngleAxis(angleA + angleRange * t, rotAxis);
+        }
+
+        private static Quaternion EvaluateRotation(
+            ref Key<TransformPoint> am, bool haveAm,
+            ref Key<TransformPoint> a,
+            ref Key<TransformPoint> b,
+            ref Key<TransformPoint> bm, bool haveBm,
+            float t) {
+
+            float am_a_time = am.param - a.param;
+            float a_b_time = a.param - b.param;
+            float b_bm_time = b.param - bm.param;
+
+            float interval_time = a_b_time * t;
+
+            float angleAm, angleA, angleB, angleBm;
+            Vector3 va, vb;
+            a.value.rotation.ToAngleAxis(out angleA, out va);
+            b.value.rotation.ToAngleAxis(out angleB, out vb);
+
+            Vector3 va_;
+            float angSpd_am_a;
+            if (haveAm) {
+                Vector3 vam;
+                am.value.rotation.ToAngleAxis(out angleAm, out vam);
+                // v_am_a_rotAxis is the axis of rotation from vam to va.
+                Vector3 v_am_a_rotAxis = Vector3.Cross(va, vam);
+                v_am_a_rotAxis.Normalize();
+                // angSpd_am_a is the anglular speed between vam and va (deg/s).
+                float ang_am_a = Vector3.Angle(vam, va);
+                angSpd_am_a = ang_am_a / am_a_time;
+
+                // va_ is vam rotating into va, just as the rotation axis will
+                // tangentially change at time a.
+                va_ = Quaternion.AngleAxis(
+                    angSpd_am_a * interval_time,
+                    v_am_a_rotAxis) * va;
+            } else {
+                // Assume that the camera axis not rotating at time a.
+                va_ = va;
+                angSpd_am_a = 0;
+            }
+
+            Vector3 vb_;
+            float angSpd_b_bm;
+            if (haveBm) {
+                Vector3 vbm;
+                bm.value.rotation.ToAngleAxis(out angleBm, out vbm);
+                // v_b_bm_rotAxis is the axis of rotation from vb to vbm.
+                Vector3 v_b_bm_rotAxis = Vector3.Cross(vbm, vb);
+                v_b_bm_rotAxis.Normalize();
+                // angSpd_am_a is the anglular speed between vb and vbm (deg/s).
+                float ang_b_bm = Vector3.Angle(vb, vbm);
+                angSpd_b_bm = ang_b_bm / b_bm_time;
+
+                // vb_ is vb rotating into vbm, just as the rotation axis will
+                // tangentially change at time b.
+                vb_ = Quaternion.AngleAxis(
+                    angSpd_b_bm * interval_time,
+                    v_b_bm_rotAxis) * vb;
+            } else {
+                // Assume that the camera axis not rotating at time a.
+                vb_ = vb;
+                angSpd_b_bm = 0;
+            }
+
+            float angleBetweenRotAxes = Vector3.Angle(vb_, va_);
+            Vector3 rotRotAxis = Vector3.Cross(va_, vb_);
+            rotRotAxis.Normalize();
+
+            float angle = CubicHermiteSpline.P(t, 0, angSpd_am_a, angleBetweenRotAxes, angSpd_b_bm);
+
+            // rotRot rotates va_ to vb_ for t = 0 to 1.
+            Quaternion rotRot = Quaternion.AngleAxis(angle, rotRotAxis);
+            Vector3 rotAxis = rotRot * va_;
+            Debug.Log(string.Format("{0} {1} {2}", va_, vb_, rotAxis));
+
+            // TODO: Consider wrapping crossing 0/360 degrees.
+            float angleRange = angleB - angleA;
+
+            return Quaternion.AngleAxis(angleA + angleRange * t, rotAxis);
         }
     }
 
@@ -106,7 +226,7 @@ namespace KerbCam {
         }
 
         public float MaxTime {
-            get { return transformsCurve.Count; }
+            get { return transformsCurve.MaxParam; }
         }
 
         private TransformPoint MakeTransformPoint(Transform trn) {
@@ -194,7 +314,7 @@ namespace KerbCam {
         private void UpdateTransform() {
             Transform camTrn2 = runningCam.transform;
             Transform camTrn1 = camTrn2.parent;
-            
+
             TransformPoint curTrnPoint = transformsCurve.Evaluate(curTime);
             camTrn1.localRotation = Quaternion.identity;
             camTrn1.localPosition = curTrnPoint.position;
