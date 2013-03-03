@@ -39,10 +39,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.cs" />
+    <Compile Include="QuatUtil.cs" />
     <Compile Include="SimpleCamPath.cs" />
     <Compile Include="KerbCamCore.cs" />
     <Compile Include="GUIHelper.cs" />
     <Compile Include="Interpolator.cs" />
+    <Compile Include="SplineUtil.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>

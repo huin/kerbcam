@@ -52,8 +52,13 @@ namespace KerbCam {
             if (!isEnabled)
                 return;
 
-            if (state.SelectedPath != null)
-                state.SelectedPath.Update();
+            try {
+                if (state.SelectedPath != null) {
+                    state.SelectedPath.Update();
+                }
+            } catch (Exception e) {
+                Debug.LogError(e.ToString() + "\n" + e.StackTrace);
+            }
         }
 
         public void OnGUI() {
@@ -61,7 +66,6 @@ namespace KerbCam {
                 return;
 
             try {
-
                 var ev = Event.current;
 
                 if (state.SelectedPath != null) {
@@ -91,8 +95,7 @@ namespace KerbCam {
         public void RemovePathAt(int index) {
             var path = paths[index];
             if (path == selectedPath) {
-                selectedPath.StopRunning();
-                selectedPath = null;
+                SelectedPath = null;
             }
             paths.RemoveAt(index);
         }
@@ -102,14 +105,14 @@ namespace KerbCam {
             set {
                 if (selectedPath != null) {
                     selectedPath.StopRunning();
+                    selectedPath.StopDrawing();
                 }
                 selectedPath = value;
             }
         }
 
         public void Stop() {
-            if (selectedPath != null)
-                selectedPath.StopRunning();
+            SelectedPath = null;
         }
     }
 

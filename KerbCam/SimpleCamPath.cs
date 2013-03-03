@@ -37,24 +37,36 @@ namespace KerbCam {
             ref Key<TransformPoint> bm, bool haveBm,
             float t) {
 
+            float dp = b.param - a.param;
+
             Vector3 m0 = new Vector3(0, 0, 0);
             if (haveAm) {
-                float dp = a.param - am.param;
-                m0.x = (a.value.position.x - am.value.position.x) / dp;
-                m0.y = (a.value.position.y - am.value.position.y) / dp;
-                m0.z = (a.value.position.z - am.value.position.z) / dp;
+                m0.x = SplineUtil.T(
+                    am.param, a.param, b.param,
+                    am.value.position.x, a.value.position.x, b.value.position.x)*dp;
+                m0.y = SplineUtil.T(
+                    am.param, a.param, b.param,
+                    am.value.position.y, a.value.position.y, b.value.position.y)*dp;
+                m0.z = SplineUtil.T(
+                    am.param, a.param, b.param,
+                    am.value.position.z, a.value.position.z, b.value.position.z)*dp;
             }
             Vector3 m1 = new Vector3(0, 0, 0);
             if (haveBm) {
-                float dp = b.param - bm.param;
-                m1.x = (b.value.position.x - bm.value.position.x) / dp;
-                m1.y = (b.value.position.y - bm.value.position.y) / dp;
-                m1.z = (b.value.position.z - bm.value.position.z) / dp;
+                m1.x = SplineUtil.T(
+                    a.param, b.param, bm.param,
+                    a.value.position.x, b.value.position.x, bm.value.position.x)*dp;
+                m1.y = SplineUtil.T(
+                    a.param, b.param, bm.param,
+                    a.value.position.y, b.value.position.y, bm.value.position.y)*dp;
+                m1.z = SplineUtil.T(
+                    a.param, b.param, bm.param,
+                    a.value.position.z, b.value.position.z, bm.value.position.z)*dp;
             }
             Vector3 position = new Vector3 {
-                x = CubicHermiteSpline.P(t, a.value.position.x, m0.x, b.value.position.x, m1.x),
-                y = CubicHermiteSpline.P(t, a.value.position.y, m0.y, b.value.position.y, m1.y),
-                z = CubicHermiteSpline.P(t, a.value.position.z, m0.z, b.value.position.z, m1.z)
+                x = SplineUtil.CubicHermite(t, a.value.position.x, m0.x, b.value.position.x, m1.x),
+                y = SplineUtil.CubicHermite(t, a.value.position.y, m0.y, b.value.position.y, m1.y),
+                z = SplineUtil.CubicHermite(t, a.value.position.z, m0.z, b.value.position.z, m1.z)
             };
             return position;
         }
@@ -84,7 +96,7 @@ namespace KerbCam {
             return Quaternion.AngleAxis(angleA + angleRange * t, rotAxis);
         }
 
-        private static Quaternion EvaluateRotation(
+        private static Quaternion EvaluateRotationSecondTry(
             ref Key<TransformPoint> am, bool haveAm,
             ref Key<TransformPoint> a,
             ref Key<TransformPoint> b,
@@ -104,7 +116,11 @@ namespace KerbCam {
 
             Vector3 va_;
             float angSpd_am_a;
-            if (haveAm) {
+            if (!haveAm) {
+                // Assume that the camera axis not rotating at time a.
+                va_ = va;
+                angSpd_am_a = 0;
+            } else {
                 Vector3 vam;
                 am.value.rotation.ToAngleAxis(out angleAm, out vam);
                 // v_am_a_rotAxis is the axis of rotation from vam to va.
@@ -119,15 +135,15 @@ namespace KerbCam {
                 va_ = Quaternion.AngleAxis(
                     angSpd_am_a * interval_time,
                     v_am_a_rotAxis) * va;
-            } else {
-                // Assume that the camera axis not rotating at time a.
-                va_ = va;
-                angSpd_am_a = 0;
             }
 
             Vector3 vb_;
             float angSpd_b_bm;
-            if (haveBm) {
+            if (!haveBm) {
+                // Assume that the camera axis not rotating at time a.
+                vb_ = vb;
+                angSpd_b_bm = 0;
+            } else {
                 Vector3 vbm;
                 bm.value.rotation.ToAngleAxis(out angleBm, out vbm);
                 // v_b_bm_rotAxis is the axis of rotation from vb to vbm.
@@ -139,42 +155,113 @@ namespace KerbCam {
 
                 // vb_ is vb rotating into vbm, just as the rotation axis will
                 // tangentially change at time b.
+                float startAngle = -angSpd_b_bm * a_b_time;
                 vb_ = Quaternion.AngleAxis(
-                    angSpd_b_bm * interval_time,
+                    startAngle + (angSpd_b_bm * interval_time),
                     v_b_bm_rotAxis) * vb;
-            } else {
-                // Assume that the camera axis not rotating at time a.
-                vb_ = vb;
-                angSpd_b_bm = 0;
             }
 
             float angleBetweenRotAxes = Vector3.Angle(vb_, va_);
             Vector3 rotRotAxis = Vector3.Cross(va_, vb_);
             rotRotAxis.Normalize();
 
-            float angle = CubicHermiteSpline.P(t, 0, angSpd_am_a, angleBetweenRotAxes, angSpd_b_bm);
+            float angle = SplineUtil.CubicHermite(t, 0, angSpd_am_a, angleBetweenRotAxes, angSpd_b_bm);
 
             // rotRot rotates va_ to vb_ for t = 0 to 1.
             Quaternion rotRot = Quaternion.AngleAxis(angle, rotRotAxis);
             Vector3 rotAxis = rotRot * va_;
-            Debug.Log(string.Format("{0} {1} {2}", va_, vb_, rotAxis));
+            //Debug.Log(string.Format("{0} {1} {2}", va_, vb_, rotAxis));
 
             // TODO: Consider wrapping crossing 0/360 degrees.
             float angleRange = angleB - angleA;
 
             return Quaternion.AngleAxis(angleA + angleRange * t, rotAxis);
         }
-    }
 
-    public class BadTransformCountError : Exception {
-        public int numTransformLevels;
+        private static Quaternion EvaluateRotationThirdTry(
+            ref Key<TransformPoint> am, bool haveAm,
+            ref Key<TransformPoint> a,
+            ref Key<TransformPoint> b,
+            ref Key<TransformPoint> bm, bool haveBm,
+            float t) {
 
-        public BadTransformCountError(int numTransformLevels) {
-            this.numTransformLevels = numTransformLevels;
+            float dp = b.param - a.param;
+
+            Quaternion m0 = new Quaternion(0, 0, 0, 0);
+            if (haveAm) {
+                m0.x = SplineUtil.T(
+                    am.param, a.param, b.param,
+                    am.value.rotation.x, a.value.rotation.x, b.value.rotation.x) * dp;
+                m0.y = SplineUtil.T(
+                    am.param, a.param, b.param,
+                    am.value.rotation.y, a.value.rotation.y, b.value.rotation.y) * dp;
+                m0.z = SplineUtil.T(
+                    am.param, a.param, b.param,
+                    am.value.rotation.z, a.value.rotation.z, b.value.rotation.z) * dp;
+                m0.w = SplineUtil.T(
+                    am.param, a.param, b.param,
+                    am.value.rotation.w, a.value.rotation.w, b.value.rotation.w) * dp;
+            }
+            Quaternion m1 = new Quaternion(0, 0, 0, 0);
+            if (haveBm) {
+                m1.x = SplineUtil.T(
+                    a.param, b.param, bm.param,
+                    a.value.rotation.x, b.value.rotation.x, bm.value.rotation.x) * dp;
+                m1.y = SplineUtil.T(
+                    a.param, b.param, bm.param,
+                    a.value.rotation.y, b.value.rotation.y, bm.value.rotation.y) * dp;
+                m1.z = SplineUtil.T(
+                    a.param, b.param, bm.param,
+                    a.value.rotation.z, b.value.rotation.z, bm.value.rotation.z) * dp;
+                m1.w = SplineUtil.T(
+                    a.param, b.param, bm.param,
+                    a.value.rotation.w, b.value.rotation.w, bm.value.rotation.w) * dp;
+            }
+            return new Quaternion {
+                x = SplineUtil.CubicHermite(t, a.value.rotation.x, m0.x, b.value.rotation.x, m1.x),
+                y = SplineUtil.CubicHermite(t, a.value.rotation.y, m0.y, b.value.rotation.y, m1.y),
+                z = SplineUtil.CubicHermite(t, a.value.rotation.z, m0.z, b.value.rotation.z, m1.z),
+                w = SplineUtil.CubicHermite(t, a.value.rotation.w, m0.w, b.value.rotation.w, m1.w)
+            };
         }
 
-        public override string ToString() {
-            return string.Format("Bad number of transform levels: {0}", numTransformLevels);
+        private static Quaternion EvaluateRotation(
+            ref Key<TransformPoint> am, bool haveAm,
+            ref Key<TransformPoint> a,
+            ref Key<TransformPoint> b,
+            ref Key<TransformPoint> bm, bool haveBm,
+            float t) {
+
+            Quaternion m0;
+            if (!haveAm) {
+                m0 = Quaternion.identity;
+            } else {
+                m0 = QuatUtil.SquadTangent(am.value.rotation, a.value.rotation, b.value.rotation);
+                float angle;
+                Vector3 axis;
+                m0.ToAngleAxis(out angle, out axis);
+                m0 = Quaternion.AngleAxis(angle / (b.param - am.param), axis);
+            }
+
+            Quaternion m1;
+            if (!haveBm) {
+                m1 = Quaternion.identity;
+            } else {
+                m1 = QuatUtil.SquadTangent(a.value.rotation, b.value.rotation, bm.value.rotation);
+                float angle;
+                Vector3 axis;
+                m1.ToAngleAxis(out angle, out axis);
+                m1 = Quaternion.AngleAxis(angle / (bm.param-a.param), axis);
+            }
+
+            return QuatUtil.SquadInterpolate(t,
+                a.value.rotation, m0,
+                b.value.rotation, m1);
+
+            //return I.HermiteQuaternion(t,
+            //    a.value.rotation, m0,
+            //    b.value.rotation, m1);
+            //return a.value.rotation * m0;
         }
     }
 
@@ -188,6 +275,10 @@ namespace KerbCam {
         private float curTime = 0.0F;
         private FlightCamera runningCam;
 
+        private bool isDrawn = false;
+        private Transform drawnRelTo;
+        private GameObject drawnPathObj;
+
         // Initialized from the constructor.
         private string name;
 
@@ -198,6 +289,10 @@ namespace KerbCam {
 
         public SimpleCamPath(String name) {
             this.name = name;
+        }
+
+        public bool IsDrawn {
+            get { return isDrawn; }
         }
 
         public bool IsRunning {
@@ -238,7 +333,9 @@ namespace KerbCam {
 
         public int AddKey(Transform trn, float time) {
             var v = MakeTransformPoint(trn);
-            return transformsCurve.AddKey(time, v);
+            int index = transformsCurve.AddKey(time, v);
+            UpdateDrawn();
+            return index;
         }
 
         public void AddKeyToEnd(Transform trn) {
@@ -247,6 +344,7 @@ namespace KerbCam {
             } else {
                 AddKey(trn, 0f);
             }
+            UpdateDrawn();
         }
 
         public float TimeAt(int index) {
@@ -254,11 +352,43 @@ namespace KerbCam {
         }
 
         public int MoveKeyAt(int index, float t) {
-            return transformsCurve.MoveKeyAt(index, t);
+            int newIndex = transformsCurve.MoveKeyAt(index, t);
+            UpdateDrawn();
+            return newIndex;
         }
 
         public void RemoveKey(int index) {
             transformsCurve.RemoveAt(index);
+            UpdateDrawn();
+        }
+
+        public void ToggleDrawn(Transform relTo) {
+            if (!isDrawn) {
+                StartDrawing(relTo);
+            } else {
+                StopDrawing();
+            }
+        }
+
+        public void StartDrawing(Transform relTo) {
+            isDrawn = true;
+            drawnRelTo = relTo;
+            drawnPathObj = new GameObject("Path");
+            var lines = (LineRenderer)drawnPathObj.AddComponent("LineRenderer");
+            lines.useWorldSpace = true;
+            lines.SetColors(Color.white, Color.white);
+            lines.SetWidth(0.2f, 0.2f);
+            UpdateDrawn();
+        }
+
+        public void StopDrawing() {
+            isDrawn = false;
+            drawnRelTo = null;
+
+            if (drawnPathObj != null) {
+                GameObject.Destroy(drawnPathObj);
+                drawnPathObj = null;
+            }
         }
 
         public void ToggleRunning(FlightCamera cam) {
@@ -282,7 +412,7 @@ namespace KerbCam {
             runningCam.DeactivateUpdate();
             isRunning = true;
             curTime = 0F;
-            UpdateTransform();
+            UpdateTransform(runningCam.transform, curTime);
         }
 
         public void StopRunning() {
@@ -305,25 +435,52 @@ namespace KerbCam {
             }
             lastSeenTime = worldTime;
 
-            UpdateTransform();
+            UpdateTransform(runningCam.transform, curTime);
             if (!paused && curTime >= transformsCurve.MaxParam) {
                 StopRunning();
             }
         }
 
-        private void UpdateTransform() {
-            Transform camTrn2 = runningCam.transform;
-            Transform camTrn1 = camTrn2.parent;
+        private void UpdateTransform(Transform objTrns, float t) {
+            Transform objParentTrns = objTrns.parent;
 
-            TransformPoint curTrnPoint = transformsCurve.Evaluate(curTime);
-            camTrn1.localRotation = Quaternion.identity;
-            camTrn1.localPosition = curTrnPoint.position;
-            camTrn2.localRotation = curTrnPoint.rotation;
-            camTrn2.localPosition = Vector3.zero;
+            TransformPoint curTrnPoint = transformsCurve.Evaluate(t);
+            objParentTrns.localRotation = Quaternion.identity;
+            objParentTrns.localPosition = curTrnPoint.position;
+            objTrns.localRotation = curTrnPoint.rotation;
+            objTrns.localPosition = Vector3.zero;
         }
 
         public SimpleCamPathEditor MakeEditor() {
             return new SimpleCamPathEditor(this);
+        }
+
+        private void UpdateDrawn() {
+            Debug.Log("UpdateDrawn()");
+            if (!isDrawn)
+                return;
+
+            GameObject pathPosObj = new GameObject("Path Pos");
+            Transform pathPosTrn = pathPosObj.transform;
+            GameObject pathLookObj = new GameObject("Path Look");
+            Transform pathLookTrn = pathLookObj.transform;
+            pathPosTrn.parent = drawnRelTo;
+            pathLookTrn.parent = pathPosTrn;
+
+            var lines = (LineRenderer)drawnPathObj.GetComponent("LineRenderer");
+
+            int numVerts = (int)((transformsCurve.MaxParam - transformsCurve.MinParam) / 0.1f);
+            lines.SetVertexCount(numVerts);
+
+            int i = 0;
+            for (float t = transformsCurve.MinParam; i < numVerts && t < transformsCurve.MaxParam; t += 0.1f, i++) {
+                UpdateTransform(pathLookTrn, t);
+
+                Vector3 curPos = pathLookTrn.position;
+                lines.SetPosition(i, curPos);
+
+                Debug.Log(string.Format("{0} {1}", t, curPos));
+            }
         }
     }
 
@@ -397,13 +554,22 @@ namespace KerbCam {
         private void DoPlaybackControls() {
             GUILayout.BeginHorizontal(); // BEGIN playback controls
             GUILayout.Label(string.Format("{0:0.00}s", path.CurrentTime));
+
             bool shouldRun = GUILayout.Toggle(path.IsRunning, "");
             GUILayout.Label("Play");
             if (path.IsRunning != shouldRun) {
                 path.ToggleRunning(FlightCamera.fetch);
             }
+
             path.Paused = GUILayout.Toggle(path.Paused, "");
             GUILayout.Label("Pause");
+
+            bool shouldDraw = GUILayout.Toggle(path.IsDrawn, "");
+            GUILayout.Label("Draw");
+            if (path.IsDrawn != shouldDraw) {
+                path.ToggleDrawn(FlightCamera.fetch.transform.root);
+            }
+
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal(); // END playback controls
         }
@@ -457,10 +623,13 @@ namespace KerbCam {
             {
                 // Direct editing of key time.
                 GUILayout.BeginHorizontal(); // BEGIN key time editing
-                selectedKeyTimeString = GUILayout.TextField(selectedKeyTimeString);
-                float newKeyTime;
-                if (float.TryParse(selectedKeyTimeString, out newKeyTime)) {
-                    selectedKeyIndex = path.MoveKeyAt(selectedKeyIndex, newKeyTime);
+                string newSelectedKeyTimeString = GUILayout.TextField(selectedKeyTimeString);
+                if (newSelectedKeyTimeString != selectedKeyTimeString) {
+                    selectedKeyTimeString = newSelectedKeyTimeString;
+                    float newKeyTime;
+                    if (float.TryParse(selectedKeyTimeString, out newKeyTime)) {
+                        selectedKeyIndex = path.MoveKeyAt(selectedKeyIndex, newKeyTime);
+                    }
                 }
                 GUILayout.Label("s");
                 GUILayout.FlexibleSpace();
@@ -500,4 +669,3 @@ namespace KerbCam {
         }
     }
 }
-
