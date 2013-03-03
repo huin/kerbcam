@@ -17,6 +17,7 @@ namespace KerbCam {
         public static Quaternion HermiteQuaternion(float t, Quaternion qa, Quaternion wa, Quaternion qb, Quaternion wb) {
             float t2 = t * t;
             float t3 = t2 * t;
+
             float b1 = 1 - (1 - 3 * t + 3 * t2 - t3);
             float b2 = 3 * t2 - 2 * t3;
             float b3 = t3;
@@ -71,34 +72,40 @@ namespace KerbCam {
             r.w *= factor;
         }
 
+        public static void Add(ref Quaternion r, Quaternion v) {
+            r.x += v.x;
+            r.y += v.y;
+            r.z += v.z;
+            r.w += v.w;
+        }
+
         public static Quaternion LogInv(Quaternion a, Quaternion b) {
-            Quaternion result = Quaternion.Inverse(a);
-            result *= b;
-            Normalize(ref result);
+            Quaternion result = a;
+            Add(ref result, Quaternion.Inverse(b));
             Log(ref result);
             return result;
         }
 
         public static Quaternion SquadInterpolate(float t,
-            Quaternion a, Quaternion am,
-            Quaternion b, Quaternion bm
+            Quaternion q0, Quaternion q1,
+            Quaternion s0, Quaternion s1
             ) {
-            Quaternion rotAtoB = Quaternion.Slerp(a, b, t);
-            Quaternion rotAmtoBm = Quaternion.Slerp(am, bm, t);
-            return Quaternion.Slerp(rotAtoB, rotAmtoBm, 2f * t * (1f - t));
+            return Quaternion.Slerp(
+                Quaternion.Slerp(q0, q1, t),
+                Quaternion.Slerp(s0, s1, t),
+                2f * t * (1f - t));
         }
 
         public static Quaternion SquadTangent(Quaternion start, Quaternion mid, Quaternion end) {
-            Quaternion log1 = LogInv(mid, start);
-            Quaternion log2 = LogInv(mid, end);
+            Quaternion log1 = LogInv(end, mid);
+            Quaternion log2 = LogInv(start, mid);
 
-            Quaternion tmp;
-            tmp.x = -0.25f * (log1.x + log2.x);
-            tmp.y = -0.25f * (log1.y + log2.y);
-            tmp.z = -0.25f * (log1.z + log2.z);
-            tmp.w = -0.25f * (log1.w + log2.w);
+            Quaternion tmp = log1;
+            Add(ref tmp, log2);
+            Mul(ref tmp, -0.25f);
             Exp(ref tmp);
-            return mid * tmp;
+
+            return tmp * mid;
         }
 
         public static float Abs(Quaternion q) {

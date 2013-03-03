@@ -12,7 +12,9 @@ namespace KerbCam {
     // interpolation is implemented and there's no longer a reason
     // to choose.
     public enum RotType {
-        Slerp, Experimental
+        Slerp,
+        Squad,
+        Component
     };
 
     public class TransformPointInterpolator : Interpolator4<TransformPoint>.IValueInterpolator {
@@ -36,11 +38,14 @@ namespace KerbCam {
 
         private Quaternion EvaluateRotation(ref Key<TransformPoint> k0, bool haveK0, ref Key<TransformPoint> k1, ref Key<TransformPoint> k2, ref Key<TransformPoint> k3, bool haveK3, float t) {
             switch (rotType) {
+                case RotType.Component:
+                    return EvaluateRotationComponent(
+                        ref k0, haveK0, ref k1, ref k2, ref k3, haveK3, t);
                 case RotType.Slerp:
                     return EvaluateRotationSlerp(
                         ref k0, haveK0, ref k1, ref k2, ref k3, haveK3, t);
-                case RotType.Experimental:
-                    return EvaluateRotationExperimental(
+                case RotType.Squad:
+                    return EvaluateRotationSquad(
                         ref k0, haveK0, ref k1, ref k2, ref k3, haveK3, t);
                 default:
                     Debug.LogWarning("Unhandled RotType " + rotType);
@@ -61,25 +66,25 @@ namespace KerbCam {
             if (haveK0) {
                 m0.x = SplineUtil.T(
                     k0.param, k1.param, k2.param,
-                    k0.value.position.x, k1.value.position.x, k2.value.position.x)*dp;
+                    k0.value.position.x, k1.value.position.x, k2.value.position.x) * dp;
                 m0.y = SplineUtil.T(
                     k0.param, k1.param, k2.param,
-                    k0.value.position.y, k1.value.position.y, k2.value.position.y)*dp;
+                    k0.value.position.y, k1.value.position.y, k2.value.position.y) * dp;
                 m0.z = SplineUtil.T(
                     k0.param, k1.param, k2.param,
-                    k0.value.position.z, k1.value.position.z, k2.value.position.z)*dp;
+                    k0.value.position.z, k1.value.position.z, k2.value.position.z) * dp;
             }
             Vector3 m1 = new Vector3(0, 0, 0);
             if (haveK3) {
                 m1.x = SplineUtil.T(
                     k1.param, k2.param, k3.param,
-                    k1.value.position.x, k2.value.position.x, k3.value.position.x)*dp;
+                    k1.value.position.x, k2.value.position.x, k3.value.position.x) * dp;
                 m1.y = SplineUtil.T(
                     k1.param, k2.param, k3.param,
-                    k1.value.position.y, k2.value.position.y, k3.value.position.y)*dp;
+                    k1.value.position.y, k2.value.position.y, k3.value.position.y) * dp;
                 m1.z = SplineUtil.T(
                     k1.param, k2.param, k3.param,
-                    k1.value.position.z, k2.value.position.z, k3.value.position.z)*dp;
+                    k1.value.position.z, k2.value.position.z, k3.value.position.z) * dp;
             }
             Vector3 position = new Vector3 {
                 x = SplineUtil.CubicHermite(t, k1.value.position.x, m0.x, k2.value.position.x, m1.x),
@@ -93,7 +98,7 @@ namespace KerbCam {
         /// Interpolate rotation dumbly using cubic Hermite interpolation of
         /// each Quaternion components. This creates odd effects.
         /// </summary>
-        private static Quaternion EvaluateRotationDumb(
+        private static Quaternion EvaluateRotationComponent(
             ref Key<TransformPoint> k0, bool haveK0,
             ref Key<TransformPoint> k1,
             ref Key<TransformPoint> k2,
@@ -140,42 +145,38 @@ namespace KerbCam {
             };
         }
 
-        private static Quaternion EvaluateRotationExperimental(
+        private static Quaternion EvaluateRotationSquad(
             ref Key<TransformPoint> k0, bool haveK0,
             ref Key<TransformPoint> k1,
             ref Key<TransformPoint> k2,
             ref Key<TransformPoint> k3, bool haveK3,
             float t) {
 
-            Quaternion m0;
+            Quaternion s0;
             if (!haveK0) {
-                m0 = Quaternion.identity;
+                s0 = Quaternion.identity;
             } else {
-                m0 = QuatUtil.SquadTangent(k0.value.rotation, k1.value.rotation, k2.value.rotation);
-                float angle;
-                Vector3 axis;
-                m0.ToAngleAxis(out angle, out axis);
-                m0 = Quaternion.AngleAxis(angle / (k2.param - k0.param), axis);
+                s0 = QuatUtil.SquadTangent(k0.value.rotation, k1.value.rotation, k2.value.rotation);
+                //float angle;
+                //Vector3 axis;
+                //s0.ToAngleAxis(out angle, out axis);
+                //s0 = Quaternion.AngleAxis(angle / (k2.param - k0.param), axis);
             }
 
-            Quaternion m1;
+            Quaternion s1;
             if (!haveK3) {
-                m1 = Quaternion.identity;
+                s1 = Quaternion.identity;
             } else {
-                m1 = QuatUtil.SquadTangent(k1.value.rotation, k2.value.rotation, k3.value.rotation);
-                float angle;
-                Vector3 axis;
-                m1.ToAngleAxis(out angle, out axis);
-                m1 = Quaternion.AngleAxis(angle / (k3.param-k1.param), axis);
+                s1 = QuatUtil.SquadTangent(k1.value.rotation, k2.value.rotation, k3.value.rotation);
+                //float angle;
+                //Vector3 axis;
+                //s1.ToAngleAxis(out angle, out axis);
+                //s1 = Quaternion.AngleAxis(angle / (k3.param-k1.param), axis);
             }
 
             return QuatUtil.SquadInterpolate(t,
-                k1.value.rotation, m0,
-                k2.value.rotation, m1);
-
-            //return QuatUtil.HermiteQuaternion(t,
-            //    k1.value.rotation, m0,
-            //    k2.value.rotation, m1);
+                k1.value.rotation, k2.value.rotation,
+                s0, s1);
         }
 
         private static Quaternion EvaluateRotationSlerp(
@@ -206,9 +207,11 @@ namespace KerbCam {
         // Initialized from the constructor.
         private string name;
 
-        // The interpolation curves for the transformations.
-        private TransformPointInterpolator interpolator;
+        /// The interpolation curve for the transformations.
         private Interpolator4<TransformPoint> transformsCurve;
+
+        /// Interpolates for the curve.
+        private TransformPointInterpolator interpolator;
 
         public SimpleCamPath(String name) {
             this.name = name;
@@ -468,7 +471,11 @@ namespace KerbCam {
             if (developerMode) {
                 GUILayout.BeginHorizontal(); // BEGIN rotation choice
                 GUILayout.Label("Rotation type:");
-                var rotTypes = new RotType[] { RotType.Slerp, RotType.Experimental };
+                var rotTypes = new RotType[] {
+                    RotType.Slerp,
+                    RotType.Squad,
+                    RotType.Component
+                };
                 foreach (var rotType in rotTypes) {
                     if (GUILayout.Toggle(path.RotType == rotType, "")) {
                         path.RotType = rotType;
