@@ -169,18 +169,17 @@ namespace KerbCam {
     /// <typeparam name="Value"></typeparam>
     public class Interpolator4<Value> : ParamSeries<Value> {
         public interface IValueInterpolator {
-            /**
-             * Interpolates between two values, with the surrounding values, param is scaled 
-             * <param name="am">The value prior to a.</param>
-             * <param name="haveAm">Is am present.</param>
-             * <param name="a">The value for t=0.</param>
-             * <param name="b">The value for t=1.</param>
-             * <param name="bm">The value following b.</param>
-             * <param name="haveBm">Is bm present.</param>
-             * <param name="t">The interpolation parameter, this varies
-             * between 0 and 1.</param>
-             */
-            Value Evaluate(Key<Value> am, bool haveAm, Key<Value> a, Key<Value> b, Key<Value> bm, bool haveBm, float t);
+            /// <summary>
+            /// Interpolates between two values, with the surrounding values, param is scaled 
+            /// <param name="k0">The key prior to a.</param>
+            /// <param name="haveK0">Is k0 present.</param>
+            /// <param name="k1">The key for t=0.</param>
+            /// <param name="k2">The key for t=1.</param>
+            /// <param name="k3">The key following b.</param>
+            /// <param name="haveK3">Is k3 present.</param>
+            /// <param name="t">The interpolation parameter, this varies
+            /// between 0 and 1 between k1 and k2.</param>
+            Value Evaluate(Key<Value> k0, bool haveK0, Key<Value> k1, Key<Value> k2, Key<Value> k3, bool haveK3, float t);
         }
 
         private IValueInterpolator interpolator;
@@ -193,44 +192,46 @@ namespace KerbCam {
             if (Count == 0)
                 return default(Value);
 
-            int lower = FindLowerIndex(param);
-            if (lower < 0)
+            int k1Index = FindLowerIndex(param);
+            if (k1Index < 0)
                 return this[0].value;
-            if (lower >= Count - 1)
+            if (k1Index >= Count - 1)
                 return this[Count - 1].value;
 
-            float lowerT = this[lower].param;
-            float upperT = this[lower + 1].param;
-            float range = upperT - lowerT;
+            int k2Index = k1Index + 1;
+
+            float k1Param = this[k1Index].param;
+            float K2Param = this[k2Index].param;
+            float range = K2Param - k1Param;
 
             // Avoid nasty divide-by-zero math for keys that are very close together in param.
             if (range < 1e-7f) {
                 range = 1e-7f;
             }
 
-            int amIndex = lower - 1;
-            bool haveAm = amIndex >= 0;
-            Key<Value> am;
-            if (haveAm) {
-                am = this[amIndex];
+            int k0Index = k1Index - 1;
+            bool haveK0 = k0Index >= 0;
+            Key<Value> k0;
+            if (haveK0) {
+                k0 = this[k0Index];
             } else {
-                am = default(Key<Value>);
+                k0 = default(Key<Value>);
             }
 
-            int bmIndex = lower + 2;
-            bool haveBm = bmIndex < Count;
-            Key<Value> bm;
-            if (haveBm) {
-                bm = this[bmIndex];
+            int k3Index = k1Index + 2;
+            bool haveK3 = k3Index < Count;
+            Key<Value> k3;
+            if (haveK3) {
+                k3 = this[k3Index];
             } else {
-                bm = default(Key<Value>);
+                k3 = default(Key<Value>);
             }
 
             return interpolator.Evaluate(
-                am, haveAm,
-                this[lower], this[lower + 1],
-                bm, haveBm,
-                (param - lowerT) / range);
+                k0, haveK0,
+                this[k1Index], this[k2Index],
+                k3, haveK3,
+                (param - k1Param) / range);
         }
     }
 }

@@ -7,7 +7,7 @@ namespace KerbCam {
     /// </summary>
     public class QuatUtil {
         /// <summary>
-        ///  Hermite Quaternion Curve by Kim, Kim and Shin.
+        /// Hermite Quaternion Curve by Kim, Kim and Shin.
         /// </summary>
         /// <param name="t"></param>
         /// <param name="qa"></param>
@@ -37,7 +37,8 @@ namespace KerbCam {
             Log(ref w1);
 
             // q0 * exp(w1 * b1) * exp(w2 * b2) * exp(w3*b3)
-            // Values of w1, w2, w3 are destroyed in the process.
+            // Values of w1, w2, w3 are destroyed by multiplication in the
+            // process.
             Mul(ref w1, b1); Mul(ref w2, b2); Mul(ref w3, b3);
             Exp(ref w1); Exp(ref w2); Exp(ref w3);
             // tmp gets reused.

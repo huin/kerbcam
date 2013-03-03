@@ -8,260 +8,185 @@ namespace KerbCam {
         public Quaternion rotation;
     }
 
+    // Note that this enum may well go away when decent rotation
+    // interpolation is implemented and there's no longer a reason
+    // to choose.
+    public enum RotType {
+        Slerp, Experimental
+    };
+
     public class TransformPointInterpolator : Interpolator4<TransformPoint>.IValueInterpolator {
-        public static TransformPointInterpolator instance = new TransformPointInterpolator();
+
+        public RotType rotType = RotType.Slerp;
 
         public TransformPoint Evaluate(
-            Key<TransformPoint> am, bool haveAm,
-            Key<TransformPoint> a,
-            Key<TransformPoint> b,
-            Key<TransformPoint> bm, bool haveBm,
+            Key<TransformPoint> k0, bool haveK0,
+            Key<TransformPoint> k1,
+            Key<TransformPoint> k2,
+            Key<TransformPoint> k3, bool haveK3,
             float t
             ) {
 
-            // TODO: Smoother Quaternion interpolation.
-            //rot = Quaternion.Slerp(a.value.rotation, b.value.rotation, t);
-
             return new TransformPoint {
                 position = EvaluatePosition(
-                    ref am, haveAm, ref a, ref b, ref bm, haveBm, t),
-                rotation = EvaluateRotation(
-                    ref am, haveAm, ref a, ref b, ref bm, haveBm, t)
+                    ref k0, haveK0, ref k1, ref k2, ref k3, haveK3, t),
+                rotation = EvaluateRotation(ref k0, haveK0, ref k1, ref k2, ref k3, haveK3, t)
             };
         }
 
+        private Quaternion EvaluateRotation(ref Key<TransformPoint> k0, bool haveK0, ref Key<TransformPoint> k1, ref Key<TransformPoint> k2, ref Key<TransformPoint> k3, bool haveK3, float t) {
+            switch (rotType) {
+                case RotType.Slerp:
+                    return EvaluateRotationSlerp(
+                        ref k0, haveK0, ref k1, ref k2, ref k3, haveK3, t);
+                case RotType.Experimental:
+                    return EvaluateRotationExperimental(
+                        ref k0, haveK0, ref k1, ref k2, ref k3, haveK3, t);
+                default:
+                    Debug.LogWarning("Unhandled RotType " + rotType);
+                    goto case RotType.Slerp;
+            }
+        }
+
         private static Vector3 EvaluatePosition(
-            ref Key<TransformPoint> am, bool haveAm,
-            ref Key<TransformPoint> a,
-            ref Key<TransformPoint> b,
-            ref Key<TransformPoint> bm, bool haveBm,
+            ref Key<TransformPoint> k0, bool haveK0,
+            ref Key<TransformPoint> k1,
+            ref Key<TransformPoint> k2,
+            ref Key<TransformPoint> k3, bool haveK3,
             float t) {
 
-            float dp = b.param - a.param;
+            float dp = k2.param - k1.param;
 
             Vector3 m0 = new Vector3(0, 0, 0);
-            if (haveAm) {
+            if (haveK0) {
                 m0.x = SplineUtil.T(
-                    am.param, a.param, b.param,
-                    am.value.position.x, a.value.position.x, b.value.position.x)*dp;
+                    k0.param, k1.param, k2.param,
+                    k0.value.position.x, k1.value.position.x, k2.value.position.x)*dp;
                 m0.y = SplineUtil.T(
-                    am.param, a.param, b.param,
-                    am.value.position.y, a.value.position.y, b.value.position.y)*dp;
+                    k0.param, k1.param, k2.param,
+                    k0.value.position.y, k1.value.position.y, k2.value.position.y)*dp;
                 m0.z = SplineUtil.T(
-                    am.param, a.param, b.param,
-                    am.value.position.z, a.value.position.z, b.value.position.z)*dp;
+                    k0.param, k1.param, k2.param,
+                    k0.value.position.z, k1.value.position.z, k2.value.position.z)*dp;
             }
             Vector3 m1 = new Vector3(0, 0, 0);
-            if (haveBm) {
+            if (haveK3) {
                 m1.x = SplineUtil.T(
-                    a.param, b.param, bm.param,
-                    a.value.position.x, b.value.position.x, bm.value.position.x)*dp;
+                    k1.param, k2.param, k3.param,
+                    k1.value.position.x, k2.value.position.x, k3.value.position.x)*dp;
                 m1.y = SplineUtil.T(
-                    a.param, b.param, bm.param,
-                    a.value.position.y, b.value.position.y, bm.value.position.y)*dp;
+                    k1.param, k2.param, k3.param,
+                    k1.value.position.y, k2.value.position.y, k3.value.position.y)*dp;
                 m1.z = SplineUtil.T(
-                    a.param, b.param, bm.param,
-                    a.value.position.z, b.value.position.z, bm.value.position.z)*dp;
+                    k1.param, k2.param, k3.param,
+                    k1.value.position.z, k2.value.position.z, k3.value.position.z)*dp;
             }
             Vector3 position = new Vector3 {
-                x = SplineUtil.CubicHermite(t, a.value.position.x, m0.x, b.value.position.x, m1.x),
-                y = SplineUtil.CubicHermite(t, a.value.position.y, m0.y, b.value.position.y, m1.y),
-                z = SplineUtil.CubicHermite(t, a.value.position.z, m0.z, b.value.position.z, m1.z)
+                x = SplineUtil.CubicHermite(t, k1.value.position.x, m0.x, k2.value.position.x, m1.x),
+                y = SplineUtil.CubicHermite(t, k1.value.position.y, m0.y, k2.value.position.y, m1.y),
+                z = SplineUtil.CubicHermite(t, k1.value.position.z, m0.z, k2.value.position.z, m1.z)
             };
             return position;
         }
 
-        private static Quaternion EvaluateRotationFirstTry(
-            ref Key<TransformPoint> am, bool haveAm,
-            ref Key<TransformPoint> a,
-            ref Key<TransformPoint> b,
-            ref Key<TransformPoint> bm, bool haveBm,
+        /// <summary>
+        /// Interpolate rotation dumbly using cubic Hermite interpolation of
+        /// each Quaternion components. This creates odd effects.
+        /// </summary>
+        private static Quaternion EvaluateRotationDumb(
+            ref Key<TransformPoint> k0, bool haveK0,
+            ref Key<TransformPoint> k1,
+            ref Key<TransformPoint> k2,
+            ref Key<TransformPoint> k3, bool haveK3,
             float t) {
 
-            float angleA, angleB;
-
-            Vector3 va, vb;
-            a.value.rotation.ToAngleAxis(out angleA, out va);
-            b.value.rotation.ToAngleAxis(out angleB, out vb);
-            float angleBetweenRotAxes = Vector3.Angle(va, vb);
-            Vector3 rotRotAxis = Vector3.Cross(va, vb);
-
-            // rotRot rotates va to vb for t = 0 to 1.
-            Quaternion rotRot = Quaternion.AngleAxis(angleBetweenRotAxes * t, rotRotAxis);
-            Vector3 rotAxis = rotRot * va;
-
-            // TODO: Consider wrapping crossing 0/360 degrees.
-            float angleRange = angleB - angleA;
-
-            return Quaternion.AngleAxis(angleA + angleRange * t, rotAxis);
-        }
-
-        private static Quaternion EvaluateRotationSecondTry(
-            ref Key<TransformPoint> am, bool haveAm,
-            ref Key<TransformPoint> a,
-            ref Key<TransformPoint> b,
-            ref Key<TransformPoint> bm, bool haveBm,
-            float t) {
-
-            float am_a_time = am.param - a.param;
-            float a_b_time = a.param - b.param;
-            float b_bm_time = b.param - bm.param;
-
-            float interval_time = a_b_time * t;
-
-            float angleAm, angleA, angleB, angleBm;
-            Vector3 va, vb;
-            a.value.rotation.ToAngleAxis(out angleA, out va);
-            b.value.rotation.ToAngleAxis(out angleB, out vb);
-
-            Vector3 va_;
-            float angSpd_am_a;
-            if (!haveAm) {
-                // Assume that the camera axis not rotating at time a.
-                va_ = va;
-                angSpd_am_a = 0;
-            } else {
-                Vector3 vam;
-                am.value.rotation.ToAngleAxis(out angleAm, out vam);
-                // v_am_a_rotAxis is the axis of rotation from vam to va.
-                Vector3 v_am_a_rotAxis = Vector3.Cross(va, vam);
-                v_am_a_rotAxis.Normalize();
-                // angSpd_am_a is the anglular speed between vam and va (deg/s).
-                float ang_am_a = Vector3.Angle(vam, va);
-                angSpd_am_a = ang_am_a / am_a_time;
-
-                // va_ is vam rotating into va, just as the rotation axis will
-                // tangentially change at time a.
-                va_ = Quaternion.AngleAxis(
-                    angSpd_am_a * interval_time,
-                    v_am_a_rotAxis) * va;
-            }
-
-            Vector3 vb_;
-            float angSpd_b_bm;
-            if (!haveBm) {
-                // Assume that the camera axis not rotating at time a.
-                vb_ = vb;
-                angSpd_b_bm = 0;
-            } else {
-                Vector3 vbm;
-                bm.value.rotation.ToAngleAxis(out angleBm, out vbm);
-                // v_b_bm_rotAxis is the axis of rotation from vb to vbm.
-                Vector3 v_b_bm_rotAxis = Vector3.Cross(vbm, vb);
-                v_b_bm_rotAxis.Normalize();
-                // angSpd_am_a is the anglular speed between vb and vbm (deg/s).
-                float ang_b_bm = Vector3.Angle(vb, vbm);
-                angSpd_b_bm = ang_b_bm / b_bm_time;
-
-                // vb_ is vb rotating into vbm, just as the rotation axis will
-                // tangentially change at time b.
-                float startAngle = -angSpd_b_bm * a_b_time;
-                vb_ = Quaternion.AngleAxis(
-                    startAngle + (angSpd_b_bm * interval_time),
-                    v_b_bm_rotAxis) * vb;
-            }
-
-            float angleBetweenRotAxes = Vector3.Angle(vb_, va_);
-            Vector3 rotRotAxis = Vector3.Cross(va_, vb_);
-            rotRotAxis.Normalize();
-
-            float angle = SplineUtil.CubicHermite(t, 0, angSpd_am_a, angleBetweenRotAxes, angSpd_b_bm);
-
-            // rotRot rotates va_ to vb_ for t = 0 to 1.
-            Quaternion rotRot = Quaternion.AngleAxis(angle, rotRotAxis);
-            Vector3 rotAxis = rotRot * va_;
-            //Debug.Log(string.Format("{0} {1} {2}", va_, vb_, rotAxis));
-
-            // TODO: Consider wrapping crossing 0/360 degrees.
-            float angleRange = angleB - angleA;
-
-            return Quaternion.AngleAxis(angleA + angleRange * t, rotAxis);
-        }
-
-        private static Quaternion EvaluateRotationThirdTry(
-            ref Key<TransformPoint> am, bool haveAm,
-            ref Key<TransformPoint> a,
-            ref Key<TransformPoint> b,
-            ref Key<TransformPoint> bm, bool haveBm,
-            float t) {
-
-            float dp = b.param - a.param;
+            float dp = k2.param - k1.param;
 
             Quaternion m0 = new Quaternion(0, 0, 0, 0);
-            if (haveAm) {
+            if (haveK0) {
                 m0.x = SplineUtil.T(
-                    am.param, a.param, b.param,
-                    am.value.rotation.x, a.value.rotation.x, b.value.rotation.x) * dp;
+                    k0.param, k1.param, k2.param,
+                    k0.value.rotation.x, k1.value.rotation.x, k2.value.rotation.x) * dp;
                 m0.y = SplineUtil.T(
-                    am.param, a.param, b.param,
-                    am.value.rotation.y, a.value.rotation.y, b.value.rotation.y) * dp;
+                    k0.param, k1.param, k2.param,
+                    k0.value.rotation.y, k1.value.rotation.y, k2.value.rotation.y) * dp;
                 m0.z = SplineUtil.T(
-                    am.param, a.param, b.param,
-                    am.value.rotation.z, a.value.rotation.z, b.value.rotation.z) * dp;
+                    k0.param, k1.param, k2.param,
+                    k0.value.rotation.z, k1.value.rotation.z, k2.value.rotation.z) * dp;
                 m0.w = SplineUtil.T(
-                    am.param, a.param, b.param,
-                    am.value.rotation.w, a.value.rotation.w, b.value.rotation.w) * dp;
+                    k0.param, k1.param, k2.param,
+                    k0.value.rotation.w, k1.value.rotation.w, k2.value.rotation.w) * dp;
             }
             Quaternion m1 = new Quaternion(0, 0, 0, 0);
-            if (haveBm) {
+            if (haveK3) {
                 m1.x = SplineUtil.T(
-                    a.param, b.param, bm.param,
-                    a.value.rotation.x, b.value.rotation.x, bm.value.rotation.x) * dp;
+                    k1.param, k2.param, k3.param,
+                    k1.value.rotation.x, k2.value.rotation.x, k3.value.rotation.x) * dp;
                 m1.y = SplineUtil.T(
-                    a.param, b.param, bm.param,
-                    a.value.rotation.y, b.value.rotation.y, bm.value.rotation.y) * dp;
+                    k1.param, k2.param, k3.param,
+                    k1.value.rotation.y, k2.value.rotation.y, k3.value.rotation.y) * dp;
                 m1.z = SplineUtil.T(
-                    a.param, b.param, bm.param,
-                    a.value.rotation.z, b.value.rotation.z, bm.value.rotation.z) * dp;
+                    k1.param, k2.param, k3.param,
+                    k1.value.rotation.z, k2.value.rotation.z, k3.value.rotation.z) * dp;
                 m1.w = SplineUtil.T(
-                    a.param, b.param, bm.param,
-                    a.value.rotation.w, b.value.rotation.w, bm.value.rotation.w) * dp;
+                    k1.param, k2.param, k3.param,
+                    k1.value.rotation.w, k2.value.rotation.w, k3.value.rotation.w) * dp;
             }
             return new Quaternion {
-                x = SplineUtil.CubicHermite(t, a.value.rotation.x, m0.x, b.value.rotation.x, m1.x),
-                y = SplineUtil.CubicHermite(t, a.value.rotation.y, m0.y, b.value.rotation.y, m1.y),
-                z = SplineUtil.CubicHermite(t, a.value.rotation.z, m0.z, b.value.rotation.z, m1.z),
-                w = SplineUtil.CubicHermite(t, a.value.rotation.w, m0.w, b.value.rotation.w, m1.w)
+                x = SplineUtil.CubicHermite(t, k1.value.rotation.x, m0.x, k2.value.rotation.x, m1.x),
+                y = SplineUtil.CubicHermite(t, k1.value.rotation.y, m0.y, k2.value.rotation.y, m1.y),
+                z = SplineUtil.CubicHermite(t, k1.value.rotation.z, m0.z, k2.value.rotation.z, m1.z),
+                w = SplineUtil.CubicHermite(t, k1.value.rotation.w, m0.w, k2.value.rotation.w, m1.w)
             };
         }
 
-        private static Quaternion EvaluateRotation(
-            ref Key<TransformPoint> am, bool haveAm,
-            ref Key<TransformPoint> a,
-            ref Key<TransformPoint> b,
-            ref Key<TransformPoint> bm, bool haveBm,
+        private static Quaternion EvaluateRotationExperimental(
+            ref Key<TransformPoint> k0, bool haveK0,
+            ref Key<TransformPoint> k1,
+            ref Key<TransformPoint> k2,
+            ref Key<TransformPoint> k3, bool haveK3,
             float t) {
 
             Quaternion m0;
-            if (!haveAm) {
+            if (!haveK0) {
                 m0 = Quaternion.identity;
             } else {
-                m0 = QuatUtil.SquadTangent(am.value.rotation, a.value.rotation, b.value.rotation);
+                m0 = QuatUtil.SquadTangent(k0.value.rotation, k1.value.rotation, k2.value.rotation);
                 float angle;
                 Vector3 axis;
                 m0.ToAngleAxis(out angle, out axis);
-                m0 = Quaternion.AngleAxis(angle / (b.param - am.param), axis);
+                m0 = Quaternion.AngleAxis(angle / (k2.param - k0.param), axis);
             }
 
             Quaternion m1;
-            if (!haveBm) {
+            if (!haveK3) {
                 m1 = Quaternion.identity;
             } else {
-                m1 = QuatUtil.SquadTangent(a.value.rotation, b.value.rotation, bm.value.rotation);
+                m1 = QuatUtil.SquadTangent(k1.value.rotation, k2.value.rotation, k3.value.rotation);
                 float angle;
                 Vector3 axis;
                 m1.ToAngleAxis(out angle, out axis);
-                m1 = Quaternion.AngleAxis(angle / (bm.param-a.param), axis);
+                m1 = Quaternion.AngleAxis(angle / (k3.param-k1.param), axis);
             }
 
             return QuatUtil.SquadInterpolate(t,
-                a.value.rotation, m0,
-                b.value.rotation, m1);
+                k1.value.rotation, m0,
+                k2.value.rotation, m1);
 
             //return I.HermiteQuaternion(t,
-            //    a.value.rotation, m0,
-            //    b.value.rotation, m1);
-            //return a.value.rotation * m0;
+            //    k1.value.rotation, m0,
+            //    k2.value.rotation, m1);
+            //return k1.value.rotation * m0;
+        }
+
+        private static Quaternion EvaluateRotationSlerp(
+            ref Key<TransformPoint> k0, bool haveK0,
+            ref Key<TransformPoint> k1,
+            ref Key<TransformPoint> k2,
+            ref Key<TransformPoint> k3, bool haveK3,
+            float t) {
+
+            return Quaternion.Slerp(k1.value.rotation, k2.value.rotation, t);
         }
     }
 
@@ -270,7 +195,7 @@ namespace KerbCam {
         // TODO: Consider factoring these out into a runner class.
         // TODO: Merge isRunning and paused into an enum.
         private bool isRunning = false;
-        private bool paused = false;
+        private bool isPaused = false;
         private float lastSeenTime;
         private float curTime = 0.0F;
         private FlightCamera runningCam;
@@ -283,12 +208,18 @@ namespace KerbCam {
         private string name;
 
         // The interpolation curves for the transformations.
-        private Interpolator4<TransformPoint> transformsCurve =
-            new Interpolator4<TransformPoint>(
-                TransformPointInterpolator.instance);
+        private TransformPointInterpolator interpolator;
+        private Interpolator4<TransformPoint> transformsCurve;
 
         public SimpleCamPath(String name) {
             this.name = name;
+            interpolator = new TransformPointInterpolator();
+            transformsCurve = new Interpolator4<TransformPoint>(interpolator);
+        }
+
+        public RotType RotType {
+            get { return interpolator.rotType; }
+            set { interpolator.rotType = value; }
         }
 
         public bool IsDrawn {
@@ -299,10 +230,10 @@ namespace KerbCam {
             get { return isRunning; }
         }
 
-        /// The value of Paused only has an effect while running.
-        public bool Paused {
-            get { return paused; }
-            set { paused = value; }
+        /// The value of IsPaused only has an effect while running.
+        public bool IsPaused {
+            get { return isPaused; }
+            set { isPaused = value; }
         }
 
         /// The value of CurrentTime only has an effect while running.
@@ -340,7 +271,7 @@ namespace KerbCam {
 
         public void AddKeyToEnd(Transform trn) {
             if (transformsCurve.Count > 0) {
-                AddKey(trn, MaxTime + 1f);
+                AddKey(trn, MaxTime + 5f);
             } else {
                 AddKey(trn, 0f);
             }
@@ -420,8 +351,13 @@ namespace KerbCam {
                 return;
             }
             isRunning = false;
+            isPaused = false;
             runningCam.ActivateUpdate();
             runningCam = null;
+        }
+
+        public void TogglePause() {
+            isPaused = !isPaused;
         }
 
         public void Update() {
@@ -429,15 +365,16 @@ namespace KerbCam {
                 return;
 
             float worldTime = Time.realtimeSinceStartup;
-            if (!paused) {
+            if (!isPaused) {
                 float dt = worldTime - lastSeenTime;
                 curTime += dt;
             }
             lastSeenTime = worldTime;
 
             UpdateTransform(runningCam.transform, curTime);
-            if (!paused && curTime >= transformsCurve.MaxParam) {
-                StopRunning();
+            if (!isPaused && curTime >= transformsCurve.MaxParam) {
+                // Pause at the end of the path.
+                isPaused = true;
             }
         }
 
@@ -456,7 +393,6 @@ namespace KerbCam {
         }
 
         private void UpdateDrawn() {
-            Debug.Log("UpdateDrawn()");
             if (!isDrawn)
                 return;
 
@@ -478,9 +414,10 @@ namespace KerbCam {
 
                 Vector3 curPos = pathLookTrn.position;
                 lines.SetPosition(i, curPos);
-
-                Debug.Log(string.Format("{0} {1}", t, curPos));
             }
+
+            GameObject.Destroy(pathPosObj);
+            GameObject.Destroy(pathLookObj);
         }
     }
 
@@ -500,14 +437,14 @@ namespace KerbCam {
             return this.path == path;
         }
 
-        public void DoGUI() {
+        public void DoGUI(bool developerMode) {
             GUILayout.BeginHorizontal(); // BEGIN outer
-            DoPathEditing();
+            DoPathEditing(developerMode);
             DoKeyEditing();
             GUILayout.EndHorizontal(); // END outer
         }
 
-        private void DoPathEditing() {
+        private void DoPathEditing(bool developerMode) {
             GUILayout.BeginVertical(); // BEGIN path editing
             GUILayout.Label(
                 string.Format("Simple camera path [{0} keys]", path.NumKeys));
@@ -524,6 +461,19 @@ namespace KerbCam {
             GUILayout.Label(string.Format("End: {0:0.00}s", path.MaxTime));
 
             DoNewKeyControls();
+
+            if (developerMode) {
+                GUILayout.BeginHorizontal(); // BEGIN rotation choice
+                GUILayout.Label("Rotation type:");
+                var rotTypes = new RotType[] { RotType.Slerp, RotType.Experimental };
+                foreach (var rotType in rotTypes) {
+                    if (GUILayout.Toggle(path.RotType == rotType, "")) {
+                        path.RotType = rotType;
+                    }
+                    GUILayout.Label(rotType.ToString());
+                }
+                GUILayout.EndHorizontal(); // END rotation choice
+            }
 
             GUILayout.EndVertical(); // END path editing
         }
@@ -561,7 +511,7 @@ namespace KerbCam {
                 path.ToggleRunning(FlightCamera.fetch);
             }
 
-            path.Paused = GUILayout.Toggle(path.Paused, "");
+            path.IsPaused = GUILayout.Toggle(path.IsPaused, "");
             GUILayout.Label("Pause");
 
             bool shouldDraw = GUILayout.Toggle(path.IsDrawn, "");
@@ -643,7 +593,7 @@ namespace KerbCam {
             }
 
             if (GUILayout.Button("View")) {
-                path.Paused = true;
+                path.IsPaused = true;
                 path.StartRunning(FlightCamera.fetch);
                 path.CurrentTime = path.TimeAt(selectedKeyIndex);
             }

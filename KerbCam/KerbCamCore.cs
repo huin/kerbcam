@@ -24,7 +24,8 @@ namespace KerbCam {
         private State state;
 
         // TODO: Custom and additional keybindings.
-        private Event KEY_PATH_TOGGLE_RUNNING = Event.KeyboardEvent(KeyCode.Home.ToString());
+        private Event KEY_PATH_TOGGLE_RUNNING = Event.KeyboardEvent(KeyCode.Insert.ToString());
+        private Event KEY_PATH_TOGGLE_PAUSE = Event.KeyboardEvent(KeyCode.Home.ToString());
         private Event KEY_PATH_TOGGLE_WINDOW = Event.KeyboardEvent(KeyCode.F8.ToString());
 
         public void OnLevelWasLoaded() {
@@ -73,6 +74,9 @@ namespace KerbCam {
                     if (ev.Equals(KEY_PATH_TOGGLE_RUNNING)) {
                         state.SelectedPath.ToggleRunning(FlightCamera.fetch);
                     }
+                    if (ev.Equals(KEY_PATH_TOGGLE_PAUSE)) {
+                        state.SelectedPath.TogglePause();
+                    }
                 }
 
                 if (ev.Equals(KEY_PATH_TOGGLE_WINDOW)) {
@@ -91,6 +95,7 @@ namespace KerbCam {
         private SimpleCamPath selectedPath;
         public List<SimpleCamPath> paths = new List<SimpleCamPath>();
         public int numCreatedPaths = 0;
+        public bool developerMode = false;
 
         public void RemovePathAt(int index) {
             var path = paths[index];
@@ -221,13 +226,16 @@ namespace KerbCam {
 
                 // Path editor lives in right-hand-frame.
                 if (pathEditor != null) {
-                    pathEditor.DoGUI();
+                    pathEditor.DoGUI(state.developerMode);
                 }
 
                 GUILayout.EndHorizontal(); // END left/right panes
 
                 GUILayout.BeginHorizontal();
                 GUILayout.FlexibleSpace();
+                state.developerMode = GUILayout.Toggle(
+                    state.developerMode, "");
+                GUILayout.Label("Dev mode");
                 if (GUILayout.Button("?")) {
                     helpWindow.ToggleWindow();
                 }
@@ -282,12 +290,23 @@ namespace KerbCam {
             "KerbCam is a basic utility to automatically move the flight",
             " camera along a given path.\n",
             "\n",
+            "NOTE: at its current stage of development, it is very rough,",
+            " buggy, and feature incomplete. Use at your own risk. It is not",
+            " inconceivable that this can crash your spacecraft or do other",
+            " nasty things.\n",
+            "\n",
             "Note that paths are not saved, and will be lost when KSP",
             " is restarted.",
             "\n",
             "Keys:\n",
-            "* [Home] Play the currently selected path.\n",
+            "* [Insert] Toggle playback of the currently selected path.\n",
+            "* [Home] Toggle pause of playback.\n",
             "* [F8] Toggle the KerbCam window.\n",
+            "\n",
+            "Create a new path, then add keys to it by positioning your view",
+            " and add the key with the \"New key\" button. Existing points",
+            " can be viewed with the \"View\" button or moved to the current",
+            " view position with the \"Set\" button.\n",
             "\n",
             "Source is hosted at https://github.com/huin/kerbcam under the",
             " BSD license."
