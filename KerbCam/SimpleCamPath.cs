@@ -173,10 +173,9 @@ namespace KerbCam {
                 k1.value.rotation, m0,
                 k2.value.rotation, m1);
 
-            //return I.HermiteQuaternion(t,
+            //return QuatUtil.HermiteQuaternion(t,
             //    k1.value.rotation, m0,
             //    k2.value.rotation, m1);
-            //return k1.value.rotation * m0;
         }
 
         private static Quaternion EvaluateRotationSlerp(
@@ -305,8 +304,12 @@ namespace KerbCam {
             isDrawn = true;
             drawnRelTo = relTo;
             drawnPathObj = new GameObject("Path");
+            drawnPathObj.transform.parent = relTo;
+            drawnPathObj.transform.localPosition = Vector3.zero;
+            drawnPathObj.transform.localRotation = Quaternion.identity;
+
             var lines = (LineRenderer)drawnPathObj.AddComponent("LineRenderer");
-            lines.useWorldSpace = true;
+            lines.useWorldSpace = false;
             lines.SetColors(Color.white, Color.white);
             lines.SetWidth(0.2f, 0.2f);
             UpdateDrawn();
@@ -400,7 +403,7 @@ namespace KerbCam {
             Transform pathPosTrn = pathPosObj.transform;
             GameObject pathLookObj = new GameObject("Path Look");
             Transform pathLookTrn = pathLookObj.transform;
-            pathPosTrn.parent = drawnRelTo;
+            pathPosTrn.parent = null;
             pathLookTrn.parent = pathPosTrn;
 
             var lines = (LineRenderer)drawnPathObj.GetComponent("LineRenderer");
@@ -517,9 +520,8 @@ namespace KerbCam {
             bool shouldDraw = GUILayout.Toggle(path.IsDrawn, "");
             GUILayout.Label("Draw");
             if (path.IsDrawn != shouldDraw) {
-                path.ToggleDrawn(FlightCamera.fetch.transform.root);
+                path.ToggleDrawn(FlightGlobals.ActiveVessel.transform);
             }
-
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal(); // END playback controls
         }

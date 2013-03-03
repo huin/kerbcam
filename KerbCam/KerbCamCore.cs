@@ -73,8 +73,7 @@ namespace KerbCam {
                     // Events that require an active path.
                     if (ev.Equals(KEY_PATH_TOGGLE_RUNNING)) {
                         state.SelectedPath.ToggleRunning(FlightCamera.fetch);
-                    }
-                    if (ev.Equals(KEY_PATH_TOGGLE_PAUSE)) {
+                    } else if (ev.Equals(KEY_PATH_TOGGLE_PAUSE)) {
                         state.SelectedPath.TogglePause();
                     }
                 }
