@@ -431,7 +431,6 @@ namespace KerbCam {
         private Vector2 scrollPosition = new Vector2(0, 0);
         private int selectedKeyIndex = -1;
         private string selectedKeyTimeString = "";
-        private string newKeyTimeString = "0.00";
 
         private SimpleCamPath path;
 
@@ -463,8 +462,6 @@ namespace KerbCam {
             DoPlaybackControls();
 
             DoKeysList();
-
-            GUILayout.Label(string.Format("End: {0:0.00}s", path.MaxTime));
 
             DoNewKeyControls();
 
@@ -512,9 +509,9 @@ namespace KerbCam {
         }
 
         private void DoPlaybackControls() {
-            GUILayout.BeginHorizontal(); // BEGIN playback controls
-            GUILayout.Label(string.Format("{0:0.00}s", path.CurrentTime));
+            GUILayout.BeginVertical(); // BEGIN playback controls
 
+            GUILayout.BeginHorizontal(); // BEGIN buttons
             bool shouldRun = GUILayout.Toggle(path.IsRunning, "");
             GUILayout.Label("Play");
             if (path.IsRunning != shouldRun) {
@@ -530,7 +527,15 @@ namespace KerbCam {
                 path.ToggleDrawn(FlightGlobals.ActiveVessel.transform);
             }
             GUILayout.FlexibleSpace();
-            GUILayout.EndHorizontal(); // END playback controls
+            GUILayout.EndHorizontal(); // END buttons
+
+            GUILayout.BeginHorizontal(); // BEGIN playback time control and labels
+            GUILayout.Label(string.Format("{0:0.00}s", path.CurrentTime));
+            path.CurrentTime = GUILayout.HorizontalSlider(path.CurrentTime, 0f, path.MaxTime);
+            GUILayout.Label(string.Format("{0:0.00}s", path.MaxTime));
+            GUILayout.EndHorizontal(); // END playback time control and labels
+
+            GUILayout.EndVertical(); // END playback controls
         }
 
         private void DoNewKeyControls() {
@@ -539,21 +544,6 @@ namespace KerbCam {
             if (GUILayout.Button("New key")) {
                 path.AddKeyToEnd(FlightCamera.fetch.transform);
             }
-
-            // Create key at specified time.
-            {
-                float newKeyTime;
-                bool validNewKeyTime = float.TryParse(newKeyTimeString, out newKeyTime);
-                var buttonStyle = validNewKeyTime ? GUI.skin.button : C.DisabledButtonStyle;
-
-                if (GUILayout.Button("at", buttonStyle) && validNewKeyTime) {
-                    path.AddKey(FlightCamera.fetch.transform, newKeyTime);
-                }
-            }
-
-            // Specified time.
-            newKeyTimeString = GUILayout.TextField(newKeyTimeString);
-
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
         }
