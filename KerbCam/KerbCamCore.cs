@@ -55,7 +55,7 @@ namespace KerbCam {
 
             try {
                 if (state.SelectedPath != null) {
-                    state.SelectedPath.Update();
+                    state.SelectedPath.Runner.Update();
                 }
             } catch (Exception e) {
                 Debug.LogError(e.ToString() + "\n" + e.StackTrace);
@@ -72,9 +72,9 @@ namespace KerbCam {
                 if (state.SelectedPath != null) {
                     // Events that require an active path.
                     if (ev.Equals(KEY_PATH_TOGGLE_RUNNING)) {
-                        state.SelectedPath.ToggleRunning(FlightCamera.fetch);
+                        state.SelectedPath.Runner.ToggleRunning(FlightCamera.fetch);
                     } else if (ev.Equals(KEY_PATH_TOGGLE_PAUSE)) {
-                        state.SelectedPath.TogglePause();
+                        state.SelectedPath.Runner.TogglePause();
                     }
                 }
 
@@ -108,7 +108,7 @@ namespace KerbCam {
             get { return selectedPath; }
             set {
                 if (selectedPath != null) {
-                    selectedPath.StopRunning();
+                    selectedPath.Runner.StopRunning();
                     selectedPath.StopDrawing();
                 }
                 selectedPath = value;

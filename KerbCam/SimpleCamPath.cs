@@ -190,42 +190,18 @@ namespace KerbCam {
         }
     }
 
-    public class SimpleCamPath {
+    public class PathRunner {
         // Running state variables.
-        // TODO: Consider factoring these out into a runner class.
         // TODO: Merge isRunning and paused into an enum.
         private bool isRunning = false;
         private bool isPaused = false;
         private float lastSeenTime;
         private float curTime = 0.0F;
         private FlightCamera runningCam;
+        private SimpleCamPath path;
 
-        private bool isDrawn = false;
-        private Transform drawnRelTo;
-        private GameObject drawnPathObj;
-
-        // Initialized from the constructor.
-        private string name;
-
-        /// The interpolation curve for the transformations.
-        private Interpolator4<TransformPoint> transformsCurve;
-
-        /// Interpolates for the curve.
-        private TransformPointInterpolator interpolator;
-
-        public SimpleCamPath(String name) {
-            this.name = name;
-            interpolator = new TransformPointInterpolator();
-            transformsCurve = new Interpolator4<TransformPoint>(interpolator);
-        }
-
-        public RotType RotType {
-            get { return interpolator.rotType; }
-            set { interpolator.rotType = value; }
-        }
-
-        public bool IsDrawn {
-            get { return isDrawn; }
+        internal PathRunner(SimpleCamPath path) {
+            this.path = path;
         }
 
         public bool IsRunning {
@@ -242,6 +218,100 @@ namespace KerbCam {
         public float CurrentTime {
             get { return curTime; }
             set { curTime = value; }
+        }
+
+        public void ToggleRunning(FlightCamera cam) {
+            if (!isRunning)
+                StartRunning(cam);
+            else
+                StopRunning();
+        }
+
+        public void StartRunning(FlightCamera cam) {
+            if (runningCam != null) {
+                return;
+            }
+            if (path.NumKeys == 0) {
+                return;
+            }
+
+            lastSeenTime = Time.realtimeSinceStartup;
+
+            runningCam = cam;
+            runningCam.DeactivateUpdate();
+            isRunning = true;
+            curTime = 0F;
+            path.UpdateTransform(runningCam.transform, curTime);
+        }
+
+        public void StopRunning() {
+            if (runningCam == null) {
+                return;
+            }
+            isRunning = false;
+            isPaused = false;
+            runningCam.ActivateUpdate();
+            runningCam = null;
+        }
+
+        public void TogglePause() {
+            isPaused = !isPaused;
+        }
+
+        public void Update() {
+            if (!isRunning)
+                return;
+
+            float worldTime = Time.realtimeSinceStartup;
+            if (!isPaused) {
+                float dt = worldTime - lastSeenTime;
+                curTime += dt;
+            }
+            lastSeenTime = worldTime;
+
+            path.UpdateTransform(runningCam.transform, curTime);
+            if (!isPaused && curTime >= path.MaxTime) {
+                // Pause at the end of the path.
+                isPaused = true;
+            }
+        }
+    }
+
+    public class SimpleCamPath {
+
+        private bool isDrawn = false;
+        private Transform drawnRelTo;
+        private GameObject drawnPathObj;
+
+        // Initialized from the constructor.
+        private string name;
+
+        /// Interpolates for the curve.
+        private TransformPointInterpolator interpolator;
+
+        /// The interpolation curve for the transformations.
+        private Interpolator4<TransformPoint> transformsCurve;
+
+        private PathRunner runner;
+
+        public SimpleCamPath(String name) {
+            this.name = name;
+            interpolator = new TransformPointInterpolator();
+            transformsCurve = new Interpolator4<TransformPoint>(interpolator);
+            runner = new PathRunner(this);
+        }
+
+        public PathRunner Runner {
+            get { return runner; }
+        }
+
+        public RotType RotType {
+            get { return interpolator.rotType; }
+            set { interpolator.rotType = value; }
+        }
+
+        public bool IsDrawn {
+            get { return isDrawn; }
         }
 
         public string Name {
@@ -328,63 +398,8 @@ namespace KerbCam {
             }
         }
 
-        public void ToggleRunning(FlightCamera cam) {
-            if (!isRunning)
-                StartRunning(cam);
-            else
-                StopRunning();
-        }
 
-        public void StartRunning(FlightCamera cam) {
-            if (runningCam != null) {
-                return;
-            }
-            if (NumKeys == 0) {
-                return;
-            }
-
-            lastSeenTime = Time.realtimeSinceStartup;
-
-            runningCam = cam;
-            runningCam.DeactivateUpdate();
-            isRunning = true;
-            curTime = 0F;
-            UpdateTransform(runningCam.transform, curTime);
-        }
-
-        public void StopRunning() {
-            if (runningCam == null) {
-                return;
-            }
-            isRunning = false;
-            isPaused = false;
-            runningCam.ActivateUpdate();
-            runningCam = null;
-        }
-
-        public void TogglePause() {
-            isPaused = !isPaused;
-        }
-
-        public void Update() {
-            if (!isRunning)
-                return;
-
-            float worldTime = Time.realtimeSinceStartup;
-            if (!isPaused) {
-                float dt = worldTime - lastSeenTime;
-                curTime += dt;
-            }
-            lastSeenTime = worldTime;
-
-            UpdateTransform(runningCam.transform, curTime);
-            if (!isPaused && curTime >= transformsCurve.MaxParam) {
-                // Pause at the end of the path.
-                isPaused = true;
-            }
-        }
-
-        private void UpdateTransform(Transform objTrns, float t) {
+        internal void UpdateTransform(Transform objTrns, float t) {
             Transform objParentTrns = objTrns.parent;
 
             TransformPoint curTrnPoint = transformsCurve.Evaluate(t);
@@ -512,13 +527,13 @@ namespace KerbCam {
             GUILayout.BeginVertical(); // BEGIN playback controls
 
             GUILayout.BeginHorizontal(); // BEGIN buttons
-            bool shouldRun = GUILayout.Toggle(path.IsRunning, "");
+            bool shouldRun = GUILayout.Toggle(path.Runner.IsRunning, "");
             GUILayout.Label("Play");
-            if (path.IsRunning != shouldRun) {
-                path.ToggleRunning(FlightCamera.fetch);
+            if (path.Runner.IsRunning != shouldRun) {
+                path.Runner.ToggleRunning(FlightCamera.fetch);
             }
 
-            path.IsPaused = GUILayout.Toggle(path.IsPaused, "");
+            path.Runner.IsPaused = GUILayout.Toggle(path.Runner.IsPaused, "");
             GUILayout.Label("Pause");
 
             bool shouldDraw = GUILayout.Toggle(path.IsDrawn, "");
@@ -530,8 +545,8 @@ namespace KerbCam {
             GUILayout.EndHorizontal(); // END buttons
 
             GUILayout.BeginHorizontal(); // BEGIN playback time control and labels
-            GUILayout.Label(string.Format("{0:0.00}s", path.CurrentTime));
-            path.CurrentTime = GUILayout.HorizontalSlider(path.CurrentTime, 0f, path.MaxTime);
+            GUILayout.Label(string.Format("{0:0.00}s", path.Runner.CurrentTime));
+            path.Runner.CurrentTime = GUILayout.HorizontalSlider(path.Runner.CurrentTime, 0f, path.MaxTime);
             GUILayout.Label(string.Format("{0:0.00}s", path.MaxTime));
             GUILayout.EndHorizontal(); // END playback time control and labels
 
@@ -592,9 +607,9 @@ namespace KerbCam {
             }
 
             if (GUILayout.Button("View")) {
-                path.IsPaused = true;
-                path.StartRunning(FlightCamera.fetch);
-                path.CurrentTime = path.TimeAt(selectedKeyIndex);
+                path.Runner.IsPaused = true;
+                path.Runner.StartRunning(FlightCamera.fetch);
+                path.Runner.CurrentTime = path.TimeAt(selectedKeyIndex);
             }
 
             if (GUILayout.Button("Remove", C.DeleteButtonStyle)) {
