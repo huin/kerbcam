@@ -192,7 +192,6 @@ namespace KerbCam {
 
     public class PathRunner {
         // Running state variables.
-        // TODO: Merge isRunning and paused into an enum.
         private bool isRunning = false;
         private bool isPaused = false;
         private float lastSeenTime;
