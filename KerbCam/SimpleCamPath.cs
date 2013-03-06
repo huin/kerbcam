@@ -326,25 +326,26 @@ namespace KerbCam {
             get { return transformsCurve.MaxParam; }
         }
 
-        private TransformPoint MakeTransformPoint(Transform trn) {
+        private TransformPoint MakeTransformPoint(Transform trn, Transform relTo) {
+            Quaternion reversedRelRot = Quaternion.Inverse(relTo.rotation);
             return new TransformPoint {
-                position = trn.parent.localRotation * trn.localPosition,
-                rotation = trn.parent.localRotation * trn.localRotation
+                position = reversedRelRot * trn.position,
+                rotation = reversedRelRot * trn.rotation
             };
         }
 
-        public int AddKey(Transform trn, float time) {
-            var v = MakeTransformPoint(trn);
+        public int AddKey(Transform trn, Transform relTo, float time) {
+            var v = MakeTransformPoint(trn, relTo);
             int index = transformsCurve.AddKey(time, v);
             UpdateDrawn();
             return index;
         }
 
-        public void AddKeyToEnd(Transform trn) {
+        public void AddKeyToEnd(Transform trn, Transform relTo) {
             if (transformsCurve.Count > 0) {
-                AddKey(trn, MaxTime + 5f);
+                AddKey(trn, relTo, MaxTime + 5f);
             } else {
-                AddKey(trn, 0f);
+                AddKey(trn, relTo, 0f);
             }
             UpdateDrawn();
         }
@@ -556,7 +557,9 @@ namespace KerbCam {
             GUILayout.BeginHorizontal();
             // Create key at the end.
             if (GUILayout.Button("New key")) {
-                path.AddKeyToEnd(FlightCamera.fetch.transform);
+                path.AddKeyToEnd(
+                    Camera.main.transform,
+                    FlightGlobals.ActiveVessel.transform);
             }
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
@@ -602,7 +605,10 @@ namespace KerbCam {
             if (GUILayout.Button("Set")) {
                 var keyTime = path.TimeAt(selectedKeyIndex);
                 path.RemoveKey(selectedKeyIndex);
-                selectedKeyIndex = path.AddKey(FlightCamera.fetch.transform, keyTime);
+                selectedKeyIndex = path.AddKey(
+                    Camera.main.transform,
+                    FlightGlobals.ActiveVessel.transform,
+                    keyTime);
             }
 
             if (GUILayout.Button("View")) {

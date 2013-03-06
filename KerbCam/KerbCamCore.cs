@@ -27,6 +27,7 @@ namespace KerbCam {
         private Event KEY_PATH_TOGGLE_RUNNING = Event.KeyboardEvent(KeyCode.Insert.ToString());
         private Event KEY_PATH_TOGGLE_PAUSE = Event.KeyboardEvent(KeyCode.Home.ToString());
         private Event KEY_PATH_TOGGLE_WINDOW = Event.KeyboardEvent(KeyCode.F8.ToString());
+        private Event KEY_DEBUG = Event.KeyboardEvent(KeyCode.F7.ToString());
 
         public void OnLevelWasLoaded() {
             isEnabled = (FlightGlobals.fetch == null || FlightGlobals.ActiveVessel == null)
@@ -75,6 +76,18 @@ namespace KerbCam {
                         state.SelectedPath.Runner.ToggleRunning(FlightCamera.fetch);
                     } else if (ev.Equals(KEY_PATH_TOGGLE_PAUSE)) {
                         state.SelectedPath.Runner.TogglePause();
+                    }
+                }
+
+                if (state.developerMode) {
+                    if (ev.Equals(KEY_DEBUG)) {
+                        // Random bits of logging used by the developer to
+                        // work out whatever the heck he's doing.
+
+                        //DebugUtil.LogCameras();
+                        
+                        DebugUtil.LogVessel(FlightGlobals.ActiveVessel);
+                        DebugUtil.LogCamera(Camera.main);
                     }
                 }
 
