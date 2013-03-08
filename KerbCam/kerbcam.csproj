@@ -39,6 +39,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.cs" />
+    <Compile Include="CameraController.cs" />
     <Compile Include="DebugUtil.cs" />
     <Compile Include="QuatUtil.cs" />
     <Compile Include="SimpleCamPath.cs" />

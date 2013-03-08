@@ -1,6 +1,5 @@
 using System;
 using UnityEngine;
-using KSP.IO;
 
 namespace KerbCam {
     public class TransformPoint {
@@ -196,21 +195,11 @@ namespace KerbCam {
         private bool isPaused = false;
         private float lastSeenTime;
         private float curTime = 0.0F;
+
         private SimpleCamPath path;
-
-        private Camera oldCamSettings;
-        private Vector3 oldCamPos;
-        private Quaternion oldCamRot;
-        private Transform oldCamTrnParent;
-
-        private Camera cam;
-        private GameObject camTrnObj = new GameObject("KerbCam transform");
 
         internal PathRunner(SimpleCamPath path) {
             this.path = path;
-
-            oldCamSettings = new GameObject().AddComponent<Camera>();
-            oldCamSettings.enabled = false;
         }
 
         public bool IsRunning {
@@ -241,26 +230,13 @@ namespace KerbCam {
                 return;
             }
 
-            var fc = FlightCamera.fetch;
-            fc.DeactivateUpdate();
-            cam = fc.camera;
-
-            // Save old camera state.
-            oldCamSettings.CopyFrom(cam);
-            oldCamSettings.enabled = false;
-            oldCamPos = cam.transform.localPosition;
-            oldCamRot = cam.transform.localRotation;
-            oldCamTrnParent = cam.transform.parent;
-
-            // Replace with our own state.
-            cam.transform.parent = camTrnObj.transform;
-            camTrnObj.transform.parent = FlightGlobals.ActiveVessel.transform;
-            cam.enabled = true;
-
             isRunning = true;
+
+            State.instance.camControl.StartControlling();
+
             curTime = 0F;
             lastSeenTime = Time.realtimeSinceStartup;
-            path.UpdateTransform(cam.transform, curTime);
+            path.UpdateTransform(State.instance.camControl.Camera.transform, curTime);
         }
 
         public void StopRunning() {
@@ -269,17 +245,8 @@ namespace KerbCam {
             }
             isRunning = false;
             isPaused = false;
-
-            // Restore old camera state.
-            cam.CopyFrom(oldCamSettings);
-            cam.enabled = true;
-            cam.transform.localPosition = oldCamPos;
-            cam.transform.localRotation = oldCamRot;
-            cam.transform.parent = oldCamTrnParent;
-            oldCamTrnParent = null;
-
-            var fc = FlightCamera.fetch;
-            fc.ActivateUpdate();
+            State.instance.camControl.StopControlling();
+            State.instance.camControl = null;
         }
 
         public void TogglePause() {
@@ -297,7 +264,7 @@ namespace KerbCam {
             }
             lastSeenTime = worldTime;
 
-            path.UpdateTransform(cam.transform, curTime);
+            path.UpdateTransform(State.instance.camControl.Camera.transform, curTime);
             if (!isPaused && curTime >= path.MaxTime) {
                 // Pause at the end of the path.
                 isPaused = true;
@@ -322,7 +289,7 @@ namespace KerbCam {
 
         private PathRunner runner;
 
-        public SimpleCamPath(String name, Camera cameraSettings) {
+        public SimpleCamPath(string name, Camera cameraSettings) {
             this.name = name;
             interpolator = new TransformPointInterpolator();
             transformsCurve = new Interpolator4<TransformPoint>(interpolator);
@@ -485,14 +452,14 @@ namespace KerbCam {
             return this.path == path;
         }
 
-        public void DoGUI(bool developerMode) {
+        public void DoGUI() {
             GUILayout.BeginHorizontal(); // BEGIN outer
-            DoPathEditing(developerMode);
+            DoPathEditing();
             DoKeyEditing();
             GUILayout.EndHorizontal(); // END outer
         }
 
-        private void DoPathEditing(bool developerMode) {
+        private void DoPathEditing() {
             GUILayout.BeginVertical(); // BEGIN path editing
             GUILayout.Label(
                 string.Format("Simple camera path [{0} keys]", path.NumKeys));
@@ -508,7 +475,7 @@ namespace KerbCam {
 
             DoNewKeyControls();
 
-            if (developerMode) {
+            if (State.instance.developerMode) {
                 GUILayout.BeginHorizontal(); // BEGIN rotation choice
                 GUILayout.Label("Rotation type:");
                 var rotTypes = new RotType[] {
