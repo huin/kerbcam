@@ -73,7 +73,7 @@ namespace KerbCam {
                 if (state.SelectedPath != null) {
                     // Events that require an active path.
                     if (ev.Equals(KEY_PATH_TOGGLE_RUNNING)) {
-                        state.SelectedPath.Runner.ToggleRunning(FlightCamera.fetch);
+                        state.SelectedPath.Runner.ToggleRunning();
                     } else if (ev.Equals(KEY_PATH_TOGGLE_PAUSE)) {
                         state.SelectedPath.Runner.TogglePause();
                     }
@@ -84,7 +84,7 @@ namespace KerbCam {
                         // Random bits of logging used by the developer to
                         // work out whatever the heck he's doing.
 
-                        //DebugUtil.LogCameras();
+                        DebugUtil.LogCameras();
                         
                         DebugUtil.LogVessel(FlightGlobals.ActiveVessel);
                         DebugUtil.LogCamera(Camera.main);
@@ -227,7 +227,8 @@ namespace KerbCam {
                 if (GUILayout.Button("New simple path")) {
                     state.numCreatedPaths++;
                     var newPath = new SimpleCamPath(
-                        "Path #" + state.numCreatedPaths);
+                        "Path #" + state.numCreatedPaths,
+                        FlightCamera.fetch.camera);
                     state.paths.Add(newPath);
                     state.SelectedPath = newPath;
                 }
@@ -256,7 +257,7 @@ namespace KerbCam {
 
                 GUILayout.EndVertical(); // END outer container
 
-                GUI.DragWindow(new Rect(0, 0, 10000, 20));
+                GUI.DragWindow(new Rect(0, 0, 10000, 25));
             } catch (Exception e) {
                 Debug.LogError(e.ToString() + "\n" + e.StackTrace);
             }
@@ -365,7 +366,7 @@ namespace KerbCam {
 
                 GUILayout.EndVertical(); // END outer container
 
-                GUI.DragWindow(new Rect(0, 0, 10000, 20));
+                GUI.DragWindow(new Rect(0, 0, 10000, 25));
             } catch (Exception e) {
                 Debug.LogError(e.ToString() + "\n" + e.StackTrace);
             }

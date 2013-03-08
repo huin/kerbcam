@@ -196,11 +196,21 @@ namespace KerbCam {
         private bool isPaused = false;
         private float lastSeenTime;
         private float curTime = 0.0F;
-        private FlightCamera runningCam;
         private SimpleCamPath path;
+
+        private Camera oldCamSettings;
+        private Vector3 oldCamPos;
+        private Quaternion oldCamRot;
+        private Transform oldCamTrnParent;
+
+        private Camera cam;
+        private GameObject camTrnObj = new GameObject("KerbCam transform");
 
         internal PathRunner(SimpleCamPath path) {
             this.path = path;
+
+            oldCamSettings = new GameObject().AddComponent<Camera>();
+            oldCamSettings.enabled = false;
         }
 
         public bool IsRunning {
@@ -219,38 +229,57 @@ namespace KerbCam {
             set { curTime = value; }
         }
 
-        public void ToggleRunning(FlightCamera cam) {
+        public void ToggleRunning() {
             if (!isRunning)
-                StartRunning(cam);
+                StartRunning();
             else
                 StopRunning();
         }
 
-        public void StartRunning(FlightCamera cam) {
-            if (runningCam != null) {
-                return;
-            }
-            if (path.NumKeys == 0) {
+        public void StartRunning() {
+            if (isRunning || path.NumKeys == 0) {
                 return;
             }
 
-            lastSeenTime = Time.realtimeSinceStartup;
+            var fc = FlightCamera.fetch;
+            fc.DeactivateUpdate();
+            cam = fc.camera;
 
-            runningCam = cam;
-            runningCam.DeactivateUpdate();
+            // Save old camera state.
+            oldCamSettings.CopyFrom(cam);
+            oldCamSettings.enabled = false;
+            oldCamPos = cam.transform.localPosition;
+            oldCamRot = cam.transform.localRotation;
+            oldCamTrnParent = cam.transform.parent;
+
+            // Replace with our own state.
+            cam.transform.parent = camTrnObj.transform;
+            camTrnObj.transform.parent = FlightGlobals.ActiveVessel.transform;
+            cam.enabled = true;
+
             isRunning = true;
             curTime = 0F;
-            path.UpdateTransform(runningCam.transform, curTime);
+            lastSeenTime = Time.realtimeSinceStartup;
+            path.UpdateTransform(cam.transform, curTime);
         }
 
         public void StopRunning() {
-            if (runningCam == null) {
+            if (!isRunning) {
                 return;
             }
             isRunning = false;
             isPaused = false;
-            runningCam.ActivateUpdate();
-            runningCam = null;
+
+            // Restore old camera state.
+            cam.CopyFrom(oldCamSettings);
+            cam.enabled = true;
+            cam.transform.localPosition = oldCamPos;
+            cam.transform.localRotation = oldCamRot;
+            cam.transform.parent = oldCamTrnParent;
+            oldCamTrnParent = null;
+
+            var fc = FlightCamera.fetch;
+            fc.ActivateUpdate();
         }
 
         public void TogglePause() {
@@ -268,7 +297,7 @@ namespace KerbCam {
             }
             lastSeenTime = worldTime;
 
-            path.UpdateTransform(runningCam.transform, curTime);
+            path.UpdateTransform(cam.transform, curTime);
             if (!isPaused && curTime >= path.MaxTime) {
                 // Pause at the end of the path.
                 isPaused = true;
@@ -293,7 +322,7 @@ namespace KerbCam {
 
         private PathRunner runner;
 
-        public SimpleCamPath(String name) {
+        public SimpleCamPath(String name, Camera cameraSettings) {
             this.name = name;
             interpolator = new TransformPointInterpolator();
             transformsCurve = new Interpolator4<TransformPoint>(interpolator);
@@ -397,7 +426,6 @@ namespace KerbCam {
                 drawnPathObj = null;
             }
         }
-
 
         internal void UpdateTransform(Transform objTrns, float t) {
             Transform objParentTrns = objTrns.parent;
@@ -530,7 +558,7 @@ namespace KerbCam {
             bool shouldRun = GUILayout.Toggle(path.Runner.IsRunning, "");
             GUILayout.Label("Play");
             if (path.Runner.IsRunning != shouldRun) {
-                path.Runner.ToggleRunning(FlightCamera.fetch);
+                path.Runner.ToggleRunning();
             }
 
             path.Runner.IsPaused = GUILayout.Toggle(path.Runner.IsPaused, "");
@@ -613,7 +641,7 @@ namespace KerbCam {
 
             if (GUILayout.Button("View")) {
                 path.Runner.IsPaused = true;
-                path.Runner.StartRunning(FlightCamera.fetch);
+                path.Runner.StartRunning();
                 path.Runner.CurrentTime = path.TimeAt(selectedKeyIndex);
             }
 

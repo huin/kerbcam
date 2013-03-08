@@ -21,7 +21,7 @@ namespace KerbCam {
         }
 
         public static void LogCamera(Camera c) {
-            Log("Camera name={0}", c.name);
+            Log("Camera id={0} name={1}", c.GetHashCode(), c.name);
             LogTransformAscestry(c.transform);
         }
 
