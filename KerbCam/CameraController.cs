@@ -2,6 +2,15 @@
 
 namespace KerbCam {
     public class CameraController {
+
+        public interface Client {
+            /// <summary>
+            /// Called by the controller when another client acquires the
+            /// controller, or the controller stops controlling a camera.
+            /// </summary>
+            void LoseController();
+        }
+
         private bool isControlling = false;
 
         private Camera oldCamSettings;
@@ -11,6 +20,7 @@ namespace KerbCam {
 
         protected Camera cam;
         private GameObject camTrnObj = new GameObject("KerbCam transform");
+        private Client curClient;
 
         public CameraController() {
             oldCamSettings = new GameObject().AddComponent<Camera>();
@@ -25,10 +35,15 @@ namespace KerbCam {
             get { return isControlling; }
         }
 
-        public void StartControlling() {
+        public void StartControlling(Client client) {
             if (isControlling) {
                 return;
             }
+
+            if (curClient != null)
+                curClient.LoseController();
+
+            curClient = client;
 
             var fc = FlightCamera.fetch;
             fc.DeactivateUpdate();
@@ -52,6 +67,7 @@ namespace KerbCam {
                 return;
             }
             isControlling = false;
+            curClient = null;
 
             // Restore old camera state.
             cam.CopyFrom(oldCamSettings);

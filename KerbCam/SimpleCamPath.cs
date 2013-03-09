@@ -189,12 +189,13 @@ namespace KerbCam {
         }
     }
 
-    public class PathRunner {
+    public class PathRunner : CameraController.Client {
         // Running state variables.
         private bool isRunning = false;
         private bool isPaused = false;
         private float lastSeenTime;
         private float curTime = 0.0F;
+        private CameraController controller = null;
 
         private SimpleCamPath path;
 
@@ -218,21 +219,22 @@ namespace KerbCam {
             set { curTime = value; }
         }
 
-        public void ToggleRunning() {
+        public void ToggleRunning(CameraController controller) {
             if (!isRunning)
-                StartRunning();
+                StartRunning(controller);
             else
                 StopRunning();
         }
 
-        public void StartRunning() {
+        public void StartRunning(CameraController controller) {
             if (isRunning || path.NumKeys == 0) {
                 return;
             }
 
             isRunning = true;
 
-            State.instance.camControl.StartControlling();
+            this.controller = controller;
+            controller.StartControlling(this);
 
             curTime = 0F;
             lastSeenTime = Time.realtimeSinceStartup;
@@ -245,8 +247,8 @@ namespace KerbCam {
             }
             isRunning = false;
             isPaused = false;
-            State.instance.camControl.StopControlling();
-            State.instance.camControl = null;
+            controller.StopControlling();
+            controller = null;
         }
 
         public void TogglePause() {
@@ -264,11 +266,15 @@ namespace KerbCam {
             }
             lastSeenTime = worldTime;
 
-            path.UpdateTransform(State.instance.camControl.Camera.transform, curTime);
+            path.UpdateTransform(controller.Camera.transform, curTime);
             if (!isPaused && curTime >= path.MaxTime) {
                 // Pause at the end of the path.
                 isPaused = true;
             }
+        }
+
+        void CameraController.Client.LoseController() {
+            StopRunning();
         }
     }
 
@@ -525,7 +531,7 @@ namespace KerbCam {
             bool shouldRun = GUILayout.Toggle(path.Runner.IsRunning, "");
             GUILayout.Label("Play");
             if (path.Runner.IsRunning != shouldRun) {
-                path.Runner.ToggleRunning();
+                path.Runner.ToggleRunning(State.instance.camControl);
             }
 
             path.Runner.IsPaused = GUILayout.Toggle(path.Runner.IsPaused, "");
@@ -608,7 +614,7 @@ namespace KerbCam {
 
             if (GUILayout.Button("View")) {
                 path.Runner.IsPaused = true;
-                path.Runner.StartRunning();
+                path.Runner.StartRunning(State.instance.camControl);
                 path.Runner.CurrentTime = path.TimeAt(selectedKeyIndex);
             }
 

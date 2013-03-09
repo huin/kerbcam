@@ -72,7 +72,7 @@ namespace KerbCam {
                 if (State.instance.SelectedPath != null) {
                     // Events that require an active path.
                     if (ev.Equals(KEY_PATH_TOGGLE_RUNNING)) {
-                        State.instance.SelectedPath.Runner.ToggleRunning();
+                        State.instance.SelectedPath.Runner.ToggleRunning(State.instance.camControl);
                     } else if (ev.Equals(KEY_PATH_TOGGLE_PAUSE)) {
                         State.instance.SelectedPath.Runner.TogglePause();
                     }
