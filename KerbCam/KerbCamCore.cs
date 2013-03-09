@@ -134,6 +134,7 @@ namespace KerbCam {
                 if (selectedPath != null) {
                     selectedPath.Runner.StopRunning();
                     selectedPath.StopDrawing();
+                    camControl.StopControlling();
                 }
                 selectedPath = value;
             }
