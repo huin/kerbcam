@@ -86,6 +86,69 @@ namespace KerbCam {
             GUILayout.EndHorizontal(); // END side-by-side
 
             GUILayout.EndVertical(); // END toggle above movement
+
+            bool buttonPressed = (
+                trnUp || trnForwards || trnLeft || trnRight || trnDown || trnBackwards
+                || rotRollLeft || rotUp || rotRollRight || rotLeft || rotRight || rotDown);
+
+            if (buttonPressed && !controller.IsControlling) {
+                controller.StartControlling(this);
+            }
+
+            if (controller.IsControlling && buttonPressed) {
+                Transform rotationTrn = controller.Camera.transform;
+                Transform translateTrn = rotationTrn.parent;
+
+                Quaternion rot = Quaternion.Inverse(rotationTrn.root.localRotation) * rotationTrn.rotation;
+                Vector3 forward = rot * Vector3.forward;
+                Vector3 up = rot * Vector3.up;
+                Vector3 right = rot * Vector3.right;
+
+                // Translation actions.
+                if (trnForwards) {
+                    translateTrn.localPosition += forward;
+                }
+                if (trnBackwards) {
+                    translateTrn.localPosition -= forward;
+                }
+                if (trnUp) {
+                    translateTrn.localPosition += up;
+                }
+                if (trnDown) {
+                    translateTrn.localPosition -= up;
+                }
+                if (trnRight) {
+                    translateTrn.localPosition += right;
+                }
+                if (trnLeft) {
+                    translateTrn.localPosition -= right;
+                }
+
+                // Rotation actions.
+                // TODO: Make this work properly.
+                if (rotRight) {
+                    RotateTransformRotation(rotationTrn, 5f, up);
+                }
+                if (rotLeft) {
+                    RotateTransformRotation(rotationTrn, -5f, up);
+                }
+                if (rotUp) {
+                    RotateTransformRotation(rotationTrn, 5f, right);
+                }
+                if (rotDown) {
+                    RotateTransformRotation(rotationTrn, -5f, right);
+                }
+                if (rotRollRight) {
+                    RotateTransformRotation(rotationTrn, 5f, forward);
+                }
+                if (rotRollLeft) {
+                    RotateTransformRotation(rotationTrn, -5f, forward);
+                }
+            }
+        }
+
+        private static void RotateTransformRotation(Transform trn, float angle, Vector3 axis) {
+            trn.localRotation = Quaternion.AngleAxis(angle, axis) * trn.localRotation;
         }
     }
 }
