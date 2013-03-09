@@ -182,14 +182,24 @@ namespace KerbCam {
         private Vector2 pathListScroll = new Vector2();
         private WindowResizer resizer;
         private HelpWindow helpWindow;
-        private bool cameraControls = false;
+        private bool cameraControlsOpen = false;
+        private CameraControlGUI cameraGui;
 
         public MainWindow() {
             assembly = Assembly.GetCallingAssembly();
             resizer = new WindowResizer(
                 new Rect(10, 100, 200, 200),
-                new Vector2(200, 150));
+                new Vector2(GetGuiMinHeight(), GetGuiMinWidth()));
             this.helpWindow = new HelpWindow(assembly);
+            cameraGui = new CameraControlGUI(State.instance.camControl);
+        }
+
+        public float GetGuiMinHeight() {
+            return 200;
+        }
+
+        public float GetGuiMinWidth() {
+            return 170;
         }
 
         public override void HideWindow() {
@@ -225,15 +235,15 @@ namespace KerbCam {
                     }
                 }
 
-                float minHeight = 170;
-                float minWidth = 200;
+                float minHeight = GetGuiMinHeight();
+                float minWidth = GetGuiMinWidth();
+                if (cameraControlsOpen) {
+                    minHeight += cameraGui.GetGuiMinHeight();
+                    minWidth = Math.Max(minWidth, cameraGui.GetGuiMinWidth());
+                }
                 if (pathEditor != null) {
                     minHeight = Math.Max(minHeight, pathEditor.GetGuiMinHeight());
                     minWidth += pathEditor.GetGuiMinWidth();
-                }
-                if (cameraControls) {
-                    minHeight += 75;
-                    minWidth = Math.Max(minWidth, 200);
                 }
                 resizer.MinHeight = minHeight;
                 resizer.MinWidth = minWidth;
@@ -250,6 +260,14 @@ namespace KerbCam {
 
                 DoPathList();
 
+                bool pressed = GUILayout.Button(
+                    (cameraControlsOpen ? "\u25bd" : "\u25b9")
+                    + " Camera controls");
+                cameraControlsOpen = cameraControlsOpen ^ pressed;
+                if (cameraControlsOpen) {
+                    cameraGui.DoGUI();
+                }
+
                 GUILayout.EndVertical(); // END main controls
 
                 // Path editor lives in right-hand-frame.
@@ -258,8 +276,6 @@ namespace KerbCam {
                 }
 
                 GUILayout.EndHorizontal(); // END left/right panes
-
-                DoCameraControl();
 
                 GUILayout.BeginHorizontal(); // BEGIN lower controls
                 GUILayout.FlexibleSpace();
@@ -309,46 +325,6 @@ namespace KerbCam {
                 GUILayout.EndHorizontal(); // END path widgets
             }
             GUILayout.EndScrollView();
-        }
-
-        private void DoCameraControl() {
-            bool pressed = GUILayout.Button(
-                (cameraControls ? "\u25bd" : "\u25b7")
-                + " Camera controls");
-            cameraControls = cameraControls ^ pressed;
-            if (!cameraControls) {
-                return;
-            }
-
-            float GRID_SIZE = 25f;
-            var BUTTON_OPTS = new GUILayoutOption[]{
-                GUILayout.Height(GRID_SIZE),
-                GUILayout.Width(GRID_SIZE),
-                GUILayout.ExpandHeight(false),
-                GUILayout.ExpandWidth(false)
-            };
-
-            GUILayout.BeginHorizontal(); // BEGIN side-by-side
-
-            GUILayout.BeginVertical(); // BEGIN Translation controls.
-            GUILayout.BeginHorizontal(); // BEGIN top row
-            GUILayout.Space(GRID_SIZE);
-            bool trnUp = GUILayout.RepeatButton("\u25b2", C.UnpaddedButtonStyle, BUTTON_OPTS); // Up.
-            GUILayout.Space(GRID_SIZE);
-            GUILayout.EndHorizontal(); // END top row
-            GUILayout.BeginHorizontal(); // BEGIN middle row
-            bool trnLeft = GUILayout.RepeatButton("\u25c0", C.UnpaddedButtonStyle, BUTTON_OPTS); // Left.
-            GUILayout.Space(GRID_SIZE);
-            bool trnRight = GUILayout.RepeatButton("\u25b6", C.UnpaddedButtonStyle, BUTTON_OPTS); // Right.
-            GUILayout.EndHorizontal(); // END middle row
-            GUILayout.BeginHorizontal(); // BEGIN bottom row
-            GUILayout.Space(GRID_SIZE);
-            bool trnDown = GUILayout.RepeatButton("\u25bc", C.UnpaddedButtonStyle, BUTTON_OPTS); // Down.
-            GUILayout.Space(GRID_SIZE);
-            GUILayout.EndHorizontal(); // END bottom row
-            GUILayout.EndVertical(); // END Translation controls.
-
-            GUILayout.EndHorizontal(); // END side-by-side
         }
     }
 
