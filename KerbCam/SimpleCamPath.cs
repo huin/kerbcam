@@ -458,6 +458,14 @@ namespace KerbCam {
             return this.path == path;
         }
 
+        public float GetGuiMinHeight() {
+            return 275;
+        }
+
+        public float GetGuiMinWidth() {
+            return 200;
+        }
+
         public void DoGUI() {
             GUILayout.BeginHorizontal(); // BEGIN outer
             DoPathEditing();

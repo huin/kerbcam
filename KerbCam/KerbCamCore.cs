@@ -216,17 +216,22 @@ namespace KerbCam {
                     if (pathEditor == null || !pathEditor.IsForPath(State.instance.SelectedPath)) {
                         // Selected path has changed.
                         pathEditor = State.instance.SelectedPath.MakeEditor();
-                        resizer.MinWidth = 400;
-                        resizer.MinHeight = 250;
                     }
                 } else {
                     // No path is selected.
                     if (pathEditor != null) {
                         pathEditor = null;
-                        resizer.MinWidth = 200;
-                        resizer.MinHeight = 150;
                     }
                 }
+
+                float minHeight = 150;
+                float minWidth = 200;
+                if (pathEditor != null) {
+                    minHeight = Math.Max(minHeight, pathEditor.GetGuiMinHeight());
+                    minWidth += pathEditor.GetGuiMinWidth();
+                }
+                resizer.MinHeight = minHeight;
+                resizer.MinWidth = minWidth;
 
                 GUILayout.BeginVertical(); // BEGIN outer container
 
