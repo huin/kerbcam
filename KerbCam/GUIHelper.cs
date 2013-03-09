@@ -8,6 +8,7 @@ namespace KerbCam {
         public static GUIStyle DeleteButtonStyle;
         public static GUIStyle DisabledButtonStyle;
         public static GUIStyle WindowResizeStyle;
+        public static GUIStyle UnpaddedButtonStyle;
 
         public static void InitGUIConstants() {
             if (guiConstantsInitialized) {
@@ -24,6 +25,10 @@ namespace KerbCam {
             DisabledButtonStyle.focused.textColor = disabledTextColor;
             DisabledButtonStyle.hover.textColor = disabledTextColor;
             DisabledButtonStyle.normal.textColor = disabledTextColor;
+
+            UnpaddedButtonStyle = new GUIStyle(GUI.skin.button);
+            UnpaddedButtonStyle.margin = new RectOffset(0, 0, 0, 0);
+            UnpaddedButtonStyle.padding = new RectOffset(0, 0, 0, 0);
 
             WindowResizeStyle = new GUIStyle(GUI.skin.button);
 

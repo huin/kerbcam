@@ -39,10 +39,11 @@ namespace KerbCam {
             if (isControlling) {
                 return;
             }
+            isControlling = true;
 
-            if (curClient != null)
+            if (curClient != null) {
                 curClient.LoseController();
-
+            }
             curClient = client;
 
             var fc = FlightCamera.fetch;
@@ -67,6 +68,7 @@ namespace KerbCam {
                 return;
             }
             isControlling = false;
+
             curClient = null;
 
             // Restore old camera state.

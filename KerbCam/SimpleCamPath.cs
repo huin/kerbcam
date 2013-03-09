@@ -191,11 +191,10 @@ namespace KerbCam {
 
     public class PathRunner : CameraController.Client {
         // Running state variables.
-        private bool isRunning = false;
+        private CameraController controller = null;
         private bool isPaused = false;
         private float lastSeenTime;
         private float curTime = 0.0F;
-        private CameraController controller = null;
 
         private SimpleCamPath path;
 
@@ -204,7 +203,7 @@ namespace KerbCam {
         }
 
         public bool IsRunning {
-            get { return isRunning; }
+            get { return controller != null; }
         }
 
         /// The value of IsPaused only has an effect while running.
@@ -220,21 +219,19 @@ namespace KerbCam {
         }
 
         public void ToggleRunning(CameraController controller) {
-            if (!isRunning)
+            if (!IsRunning)
                 StartRunning(controller);
             else
                 StopRunning();
         }
 
         public void StartRunning(CameraController controller) {
-            if (isRunning || path.NumKeys == 0) {
+            if (IsRunning || path.NumKeys == 0) {
                 return;
             }
 
-            isRunning = true;
-
-            this.controller = controller;
             controller.StartControlling(this);
+            this.controller = controller;
 
             curTime = 0F;
             lastSeenTime = Time.realtimeSinceStartup;
@@ -242,13 +239,12 @@ namespace KerbCam {
         }
 
         public void StopRunning() {
-            if (!isRunning) {
+            if (!IsRunning) {
                 return;
             }
-            isRunning = false;
-            isPaused = false;
             controller.StopControlling();
             controller = null;
+            isPaused = false;
         }
 
         public void TogglePause() {
@@ -256,7 +252,7 @@ namespace KerbCam {
         }
 
         public void Update() {
-            if (!isRunning)
+            if (!IsRunning)
                 return;
 
             float worldTime = Time.realtimeSinceStartup;
@@ -459,7 +455,7 @@ namespace KerbCam {
         }
 
         public float GetGuiMinHeight() {
-            return 275;
+            return 300;
         }
 
         public float GetGuiMinWidth() {
@@ -568,7 +564,7 @@ namespace KerbCam {
             if (GUILayout.Button("New key")) {
                 path.AddKeyToEnd(
                     Camera.main.transform,
-                    FlightGlobals.ActiveVessel.transform);
+                    Camera.main.transform.root);
             }
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();

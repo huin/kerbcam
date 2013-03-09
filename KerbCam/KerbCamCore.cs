@@ -182,6 +182,7 @@ namespace KerbCam {
         private Vector2 pathListScroll = new Vector2();
         private WindowResizer resizer;
         private HelpWindow helpWindow;
+        private bool cameraControls = false;
 
         public MainWindow() {
             assembly = Assembly.GetCallingAssembly();
@@ -224,11 +225,15 @@ namespace KerbCam {
                     }
                 }
 
-                float minHeight = 150;
+                float minHeight = 170;
                 float minWidth = 200;
                 if (pathEditor != null) {
                     minHeight = Math.Max(minHeight, pathEditor.GetGuiMinHeight());
                     minWidth += pathEditor.GetGuiMinWidth();
+                }
+                if (cameraControls) {
+                    minHeight += 75;
+                    minWidth = Math.Max(minWidth, 200);
                 }
                 resizer.MinHeight = minHeight;
                 resizer.MinWidth = minWidth;
@@ -254,7 +259,9 @@ namespace KerbCam {
 
                 GUILayout.EndHorizontal(); // END left/right panes
 
-                GUILayout.BeginHorizontal();
+                DoCameraControl();
+
+                GUILayout.BeginHorizontal(); // BEGIN lower controls
                 GUILayout.FlexibleSpace();
                 State.instance.developerMode = GUILayout.Toggle(
                     State.instance.developerMode, "");
@@ -263,7 +270,7 @@ namespace KerbCam {
                     helpWindow.ToggleWindow();
                 }
                 resizer.HandleResize();
-                GUILayout.EndHorizontal();
+                GUILayout.EndHorizontal(); // END lower controls
 
                 GUILayout.EndVertical(); // END outer container
 
@@ -302,6 +309,46 @@ namespace KerbCam {
                 GUILayout.EndHorizontal(); // END path widgets
             }
             GUILayout.EndScrollView();
+        }
+
+        private void DoCameraControl() {
+            bool pressed = GUILayout.Button(
+                (cameraControls ? "\u25bd" : "\u25b7")
+                + " Camera controls");
+            cameraControls = cameraControls ^ pressed;
+            if (!cameraControls) {
+                return;
+            }
+
+            float GRID_SIZE = 25f;
+            var BUTTON_OPTS = new GUILayoutOption[]{
+                GUILayout.Height(GRID_SIZE),
+                GUILayout.Width(GRID_SIZE),
+                GUILayout.ExpandHeight(false),
+                GUILayout.ExpandWidth(false)
+            };
+
+            GUILayout.BeginHorizontal(); // BEGIN side-by-side
+
+            GUILayout.BeginVertical(); // BEGIN Translation controls.
+            GUILayout.BeginHorizontal(); // BEGIN top row
+            GUILayout.Space(GRID_SIZE);
+            bool trnUp = GUILayout.RepeatButton("\u25b2", C.UnpaddedButtonStyle, BUTTON_OPTS); // Up.
+            GUILayout.Space(GRID_SIZE);
+            GUILayout.EndHorizontal(); // END top row
+            GUILayout.BeginHorizontal(); // BEGIN middle row
+            bool trnLeft = GUILayout.RepeatButton("\u25c0", C.UnpaddedButtonStyle, BUTTON_OPTS); // Left.
+            GUILayout.Space(GRID_SIZE);
+            bool trnRight = GUILayout.RepeatButton("\u25b6", C.UnpaddedButtonStyle, BUTTON_OPTS); // Right.
+            GUILayout.EndHorizontal(); // END middle row
+            GUILayout.BeginHorizontal(); // BEGIN bottom row
+            GUILayout.Space(GRID_SIZE);
+            bool trnDown = GUILayout.RepeatButton("\u25bc", C.UnpaddedButtonStyle, BUTTON_OPTS); // Down.
+            GUILayout.Space(GRID_SIZE);
+            GUILayout.EndHorizontal(); // END bottom row
+            GUILayout.EndVertical(); // END Translation controls.
+
+            GUILayout.EndHorizontal(); // END side-by-side
         }
     }
 
