@@ -354,6 +354,13 @@ namespace KerbCam {
             " can be viewed with the \"View\" button or moved to the current",
             " view position with the \"Set\" button.\n",
             "\n",
+            "If more flexible camera control is required, then press the",
+            " \"Camera controls\" button to fold out the 6-degrees-of-freedom",
+            " controls. The left hand controls control translation, and the",
+            " right control orientation. The sliders above each control the",
+            " rate of movement or orientation for fine or coarse control of",
+            " the camera position and orientation.\n",
+            "\n",
             "Source is hosted at https://github.com/huin/kerbcam under the",
             " BSD license."
         );
