@@ -131,9 +131,10 @@ namespace KerbCam {
                 lastSeenTime = worldTime;
             }
 
-            if (!controller.IsControlling) {
-                controller.StartControlling(this);
-            }
+            // Even if the controller is already controlling, take control
+            // with this GUI. This stops any path from moving the camera if it
+            // was controlling the camera.
+            controller.StartControlling(this);
 
             if (controller.IsControlling) {
                 Transform rotationTrn = controller.Camera.transform;

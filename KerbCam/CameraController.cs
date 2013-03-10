@@ -36,15 +36,15 @@ namespace KerbCam {
         }
 
         public void StartControlling(Client client) {
+            if (curClient != null) {
+                curClient.LoseController();
+            }
+
+            curClient = client;
             if (isControlling) {
                 return;
             }
             isControlling = true;
-
-            if (curClient != null) {
-                curClient.LoseController();
-            }
-            curClient = client;
 
             var fc = FlightCamera.fetch;
             fc.DeactivateUpdate();

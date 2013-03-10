@@ -225,7 +225,6 @@ namespace KerbCam {
             controller.StartControlling(this);
             this.controller = controller;
 
-            curTime = 0F;
             lastSeenTime = Time.realtimeSinceStartup;
             path.UpdateTransform(State.instance.camControl.Camera.transform, curTime);
         }
@@ -234,9 +233,12 @@ namespace KerbCam {
             if (!IsRunning) {
                 return;
             }
-            controller.StopControlling();
-            controller = null;
+            if (controller != null) {
+                controller.StopControlling();
+                controller = null;
+            }
             isPaused = false;
+            curTime = 0f;
         }
 
         public void TogglePause() {
@@ -262,6 +264,7 @@ namespace KerbCam {
         }
 
         void CameraController.Client.LoseController() {
+            controller = null;
             StopRunning();
         }
     }
