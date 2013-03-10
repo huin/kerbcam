@@ -156,10 +156,6 @@ namespace KerbCam {
                 s0 = Quaternion.identity;
             } else {
                 s0 = QuatUtil.SquadTangent(k0.value.rotation, k1.value.rotation, k2.value.rotation);
-                //float angle;
-                //Vector3 axis;
-                //s0.ToAngleAxis(out angle, out axis);
-                //s0 = Quaternion.AngleAxis(angle / (k2.param - k0.param), axis);
             }
 
             Quaternion s1;
@@ -167,10 +163,6 @@ namespace KerbCam {
                 s1 = Quaternion.identity;
             } else {
                 s1 = QuatUtil.SquadTangent(k1.value.rotation, k2.value.rotation, k3.value.rotation);
-                //float angle;
-                //Vector3 axis;
-                //s1.ToAngleAxis(out angle, out axis);
-                //s1 = Quaternion.AngleAxis(angle / (k3.param-k1.param), axis);
             }
 
             return QuatUtil.SquadInterpolate(t,
