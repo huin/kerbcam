@@ -319,7 +319,7 @@ namespace KerbCam {
         private TransformPoint MakeTransformPoint(Transform trn, Transform relTo) {
             Quaternion reversedRelRot = Quaternion.Inverse(relTo.rotation);
             return new TransformPoint {
-                position = reversedRelRot * trn.position,
+                position = reversedRelRot * (trn.position - relTo.position),
                 rotation = reversedRelRot * trn.rotation
             };
         }
