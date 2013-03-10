@@ -102,8 +102,6 @@ namespace KerbCam {
                 || rotRollLeft || rotUp || rotRollRight
                 || rotLeft || rotRight || rotDown);
 
-            DebugUtil.Log("buttonPressed={0} lastSeenTime={1}", buttonPressed, lastSeenTime);
-
             if (!buttonPressed) {
                 lastSeenTime = -1f;
                 return;
@@ -121,7 +119,6 @@ namespace KerbCam {
                 dt = worldTime - lastSeenTime;
                 lastSeenTime = worldTime;
             }
-            DebugUtil.Log("dt={0}", dt);
 
             if (!controller.IsControlling) {
                 controller.StartControlling(this);
