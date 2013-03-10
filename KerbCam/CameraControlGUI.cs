@@ -125,30 +125,31 @@ namespace KerbCam {
                 }
 
                 // Rotation actions.
-                // TODO: Make this work properly.
                 if (rotRight) {
-                    RotateTransformRotation(rotationTrn, 5f, up);
+                    RotateTransformRotation(rotationTrn, 5f, Vector3.up);
                 }
                 if (rotLeft) {
-                    RotateTransformRotation(rotationTrn, -5f, up);
+                    RotateTransformRotation(rotationTrn, -5f, Vector3.up);
                 }
                 if (rotUp) {
-                    RotateTransformRotation(rotationTrn, 5f, right);
+                    RotateTransformRotation(rotationTrn, -5f, Vector3.right);
                 }
                 if (rotDown) {
-                    RotateTransformRotation(rotationTrn, -5f, right);
+                    RotateTransformRotation(rotationTrn, 5f, Vector3.right);
                 }
                 if (rotRollRight) {
-                    RotateTransformRotation(rotationTrn, 5f, forward);
+                    RotateTransformRotation(rotationTrn, -5f, Vector3.forward);
                 }
                 if (rotRollLeft) {
-                    RotateTransformRotation(rotationTrn, -5f, forward);
+                    RotateTransformRotation(rotationTrn, 5f, Vector3.forward);
                 }
             }
         }
 
         private static void RotateTransformRotation(Transform trn, float angle, Vector3 axis) {
-            trn.localRotation = Quaternion.AngleAxis(angle, axis) * trn.localRotation;
+            Quaternion rot = trn.localRotation * Quaternion.AngleAxis(angle, axis);
+            QuatUtil.Normalize(ref rot);
+            trn.localRotation = rot;
         }
     }
 }
