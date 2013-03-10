@@ -13,19 +13,15 @@ namespace KerbCam {
 
         private bool isControlling = false;
 
-        private Camera oldCamSettings;
+        private GameObject oldCamSettingsObj = null;
+        private Camera oldCamSettings = null;
         private Vector3 oldCamPos;
         private Quaternion oldCamRot;
-        private Transform oldCamTrnParent;
+        private Transform oldCamTrnParent = null;
 
-        protected Camera cam;
-        private GameObject camTrnObj = new GameObject("KerbCam transform");
-        private Client curClient;
-
-        public CameraController() {
-            oldCamSettings = new GameObject().AddComponent<Camera>();
-            oldCamSettings.enabled = false;
-        }
+        protected Camera cam = null;
+        private GameObject camTrnObj = null;
+        private Client curClient = null;
 
         public Camera Camera {
             get { return cam; }
@@ -51,6 +47,8 @@ namespace KerbCam {
             cam = fc.camera;
 
             // Save old camera state.
+            oldCamSettingsObj = new GameObject("KerbCam saved camera settings");
+            oldCamSettings = oldCamSettingsObj.AddComponent<Camera>();
             oldCamSettings.CopyFrom(cam);
             oldCamSettings.enabled = false;
             oldCamPos = cam.transform.localPosition;
@@ -58,6 +56,7 @@ namespace KerbCam {
             oldCamTrnParent = cam.transform.parent;
 
             // Replace with our own state.
+            camTrnObj = new GameObject("KerbCam transform");
             cam.transform.parent = camTrnObj.transform;
             camTrnObj.transform.parent = FlightGlobals.ActiveVessel.transform;
             cam.enabled = true;
@@ -76,11 +75,18 @@ namespace KerbCam {
 
             // Restore old camera state.
             cam.CopyFrom(oldCamSettings);
-            cam.enabled = true;
             cam.transform.localPosition = oldCamPos;
             cam.transform.localRotation = oldCamRot;
             cam.transform.parent = oldCamTrnParent;
+            cam.enabled = true;
+
+            // Throw away old references.
             oldCamTrnParent = null;
+            GameObject.Destroy(oldCamSettingsObj);
+            oldCamSettingsObj = null;
+            oldCamSettings = null;
+            GameObject.Destroy(camTrnObj);
+            camTrnObj = null;
 
             var fc = FlightCamera.fetch;
             fc.ActivateUpdate();
