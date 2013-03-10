@@ -6,7 +6,16 @@ namespace KerbCam {
         private CameraController controller;
         private float lastSeenTime = -1f;
 
-        private static float GRID_SIZE = 25f;
+        private float translateSliderPosition = 0f;
+        private float rotateSliderPosition = 0f;
+
+        // Move 10 units per second.
+        private const float BASE_TRANSLATE_SPEED = 10f;
+
+        // Rotate 20 degrees per second.
+        private const float BASE_ROTATE_SPEED = 20f;
+
+        private const float GRID_SIZE = 25f;
         private static GUILayoutOption[] BUTTON_OPTS = new GUILayoutOption[]{
                 GUILayout.Height(GRID_SIZE),
                 GUILayout.Width(GRID_SIZE),
@@ -48,6 +57,7 @@ namespace KerbCam {
             GUILayout.BeginHorizontal(); // BEGIN side-by-side
 
             GUILayout.BeginVertical(); // BEGIN translation controls
+            translateSliderPosition = GUILayout.HorizontalSlider(translateSliderPosition, -3f, 3f);
             GUILayout.BeginHorizontal(); // BEGIN top row
             GUILayout.Space(GRID_SIZE);
             bool trnUp = GUILayout.RepeatButton("\u25b2", C.UnpaddedButtonStyle, BUTTON_OPTS); // Up.
@@ -66,6 +76,7 @@ namespace KerbCam {
             GUILayout.EndVertical(); // END translation controls
 
             GUILayout.BeginVertical(); // BEGIN rotation controls
+            rotateSliderPosition = GUILayout.HorizontalSlider(rotateSliderPosition, -3f, 3f);
             GUILayout.BeginHorizontal(); // BEGIN top row
             bool rotRollLeft = GUILayout.RepeatButton("\u21b6", C.UnpaddedButtonStyle, BUTTON_OPTS); // Up.
             bool rotUp = GUILayout.RepeatButton("\u2191", C.UnpaddedButtonStyle, BUTTON_OPTS); // Up.
@@ -134,7 +145,7 @@ namespace KerbCam {
                 Vector3 right = rot * Vector3.right;
 
                 // Translation actions.
-                float dp = dt * 1f; // Move 1 unit per second.
+                float dp = dt * BASE_TRANSLATE_SPEED * (float)Math.Exp(translateSliderPosition); 
                 if (trnForwards) {
                     translateTrn.localPosition += forward * dp;
                 }
@@ -155,7 +166,7 @@ namespace KerbCam {
                 }
 
                 // Rotation actions.
-                float dr = dt * 5f; // Rotate 10 degrees per second.
+                float dr = dt * BASE_ROTATE_SPEED * (float)Math.Exp(rotateSliderPosition);
                 if (rotRight) {
                     RotateTransformRotation(rotationTrn, dr, Vector3.up);
                 }
