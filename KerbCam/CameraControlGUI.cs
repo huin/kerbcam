@@ -4,6 +4,8 @@ using UnityEngine;
 namespace KerbCam {
     class CameraControlGUI : CameraController.Client {
         private CameraController controller;
+        private float lastSeenTime = -1f;
+
         private static float GRID_SIZE = 25f;
         private static GUILayoutOption[] BUTTON_OPTS = new GUILayoutOption[]{
                 GUILayout.Height(GRID_SIZE),
@@ -87,15 +89,45 @@ namespace KerbCam {
 
             GUILayout.EndVertical(); // END toggle above movement
 
-            bool buttonPressed = (
-                trnUp || trnForwards || trnLeft || trnRight || trnDown || trnBackwards
-                || rotRollLeft || rotUp || rotRollRight || rotLeft || rotRight || rotDown);
+            // Done with layout/GUI. Following code actions the results.
 
-            if (buttonPressed && !controller.IsControlling) {
+            if (Event.current.type == EventType.Layout) {
+                // Ignore button state on layout events.
+                return;
+            }
+
+            bool buttonPressed = (
+                trnUp || trnForwards || trnLeft
+                || trnRight || trnDown || trnBackwards
+                || rotRollLeft || rotUp || rotRollRight
+                || rotLeft || rotRight || rotDown);
+
+            DebugUtil.Log("buttonPressed={0} lastSeenTime={1}", buttonPressed, lastSeenTime);
+
+            if (!buttonPressed) {
+                lastSeenTime = -1f;
+                return;
+            }
+
+            // Past this point, we know that a button is pressed and take
+            // action on it.
+
+            float dt;
+            float worldTime = Time.realtimeSinceStartup;
+            if (lastSeenTime < 0f) {
+                dt = 0f;
+                lastSeenTime = worldTime;
+            } else {
+                dt = worldTime - lastSeenTime;
+                lastSeenTime = worldTime;
+            }
+            DebugUtil.Log("dt={0}", dt);
+
+            if (!controller.IsControlling) {
                 controller.StartControlling(this);
             }
 
-            if (controller.IsControlling && buttonPressed) {
+            if (controller.IsControlling) {
                 Transform rotationTrn = controller.Camera.transform;
                 Transform translateTrn = rotationTrn.parent;
 
@@ -105,43 +137,45 @@ namespace KerbCam {
                 Vector3 right = rot * Vector3.right;
 
                 // Translation actions.
+                float dp = dt * 1f; // Move 1 unit per second.
                 if (trnForwards) {
-                    translateTrn.localPosition += forward;
+                    translateTrn.localPosition += forward * dp;
                 }
                 if (trnBackwards) {
-                    translateTrn.localPosition -= forward;
+                    translateTrn.localPosition -= forward * dp;
                 }
                 if (trnUp) {
-                    translateTrn.localPosition += up;
+                    translateTrn.localPosition += up * dp;
                 }
                 if (trnDown) {
-                    translateTrn.localPosition -= up;
+                    translateTrn.localPosition -= up * dp;
                 }
                 if (trnRight) {
-                    translateTrn.localPosition += right;
+                    translateTrn.localPosition += right * dp;
                 }
                 if (trnLeft) {
-                    translateTrn.localPosition -= right;
+                    translateTrn.localPosition -= right * dp;
                 }
 
                 // Rotation actions.
+                float dr = dt * 5f; // Rotate 10 degrees per second.
                 if (rotRight) {
-                    RotateTransformRotation(rotationTrn, 5f, Vector3.up);
+                    RotateTransformRotation(rotationTrn, dr, Vector3.up);
                 }
                 if (rotLeft) {
-                    RotateTransformRotation(rotationTrn, -5f, Vector3.up);
+                    RotateTransformRotation(rotationTrn, -dr, Vector3.up);
                 }
                 if (rotUp) {
-                    RotateTransformRotation(rotationTrn, -5f, Vector3.right);
+                    RotateTransformRotation(rotationTrn, -dr, Vector3.right);
                 }
                 if (rotDown) {
-                    RotateTransformRotation(rotationTrn, 5f, Vector3.right);
+                    RotateTransformRotation(rotationTrn, dr, Vector3.right);
                 }
                 if (rotRollRight) {
-                    RotateTransformRotation(rotationTrn, -5f, Vector3.forward);
+                    RotateTransformRotation(rotationTrn, -dr, Vector3.forward);
                 }
                 if (rotRollLeft) {
-                    RotateTransformRotation(rotationTrn, 5f, Vector3.forward);
+                    RotateTransformRotation(rotationTrn, dr, Vector3.forward);
                 }
             }
         }
