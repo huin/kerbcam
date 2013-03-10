@@ -69,7 +69,10 @@ namespace KerbCam {
             }
             isControlling = false;
 
-            curClient = null;
+            if (curClient != null) {
+                curClient.LoseController();
+                curClient = null;
+            }
 
             // Restore old camera state.
             cam.CopyFrom(oldCamSettings);
