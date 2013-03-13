@@ -395,6 +395,9 @@ namespace KerbCam {
 
                 GUILayout.BeginHorizontal();
                 GUILayout.FlexibleSpace();
+                if (GUILayout.Button("Kerbcam on Spaceport")) {
+                    Application.OpenURL("http://kerbalspaceport.com/kerbcam/");
+                }
                 if (GUILayout.Button("Report issue")) {
                     Application.OpenURL("https://github.com/huin/kerbcam/issues");
                 }
