@@ -6,6 +6,11 @@ namespace KerbCam {
     /// Utility functions for splines.
     /// </summary>
     public class SplineUtil {
+        public static bool AreParamsClose(float t0, float t1) {
+            float dt = t0 - t1;
+            return Math.Abs(dt) < 1e-7;
+        }
+
         /// <summary>
         /// Interpolates a value using a the Cubic Hermite spline formula.
         /// http://en.wikipedia.org/wiki/Cubic_Hermite_spline

@@ -28,6 +28,25 @@ namespace KerbCam {
             float t
             ) {
 
+            float dt1 = k2.param - k1.param;
+            if (SplineUtil.AreParamsClose(k1.param, k2.param)) {
+                // Don't attempt to interpolate between points that are
+                // *really* close together or even at the same "time".
+                // This works around some nan/inf problems in such cases.
+                return new TransformPoint {
+                    position = k1.value.position,
+                    rotation = k1.value.rotation
+                };
+            }
+            if (haveK0 && SplineUtil.AreParamsClose(k0.param, k1.param)) {
+                // Avoid interpolation data from k0 to k1.
+                haveK0 = false;
+            }
+            if (haveK3 && SplineUtil.AreParamsClose(k2.param, k3.param)) {
+                // Avoid interpolation data from k2 to k3.
+                haveK3 = false;
+            }
+
             return new TransformPoint {
                 position = EvaluatePosition(
                     ref k0, haveK0, ref k1, ref k2, ref k3, haveK3, t),
