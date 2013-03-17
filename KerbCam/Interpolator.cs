@@ -61,8 +61,6 @@ namespace KerbCam {
         }
 
         private int FindInsertIndex(float param) {
-            var v = new SortedList<float, Value>();
-
             if (keys.Count == 0) {
                 return 0;
             }

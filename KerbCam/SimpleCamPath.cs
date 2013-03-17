@@ -291,7 +291,6 @@ namespace KerbCam {
     public class SimpleCamPath {
 
         private bool isDrawn = false;
-        private Transform drawnRelTo;
         private GameObject drawnPathObj;
 
         // Initialized from the constructor.
@@ -387,7 +386,6 @@ namespace KerbCam {
 
         public void StartDrawing(Transform relTo) {
             isDrawn = true;
-            drawnRelTo = relTo;
             drawnPathObj = new GameObject("Path");
             drawnPathObj.transform.parent = relTo;
             drawnPathObj.transform.localPosition = Vector3.zero;
@@ -402,7 +400,6 @@ namespace KerbCam {
 
         public void StopDrawing() {
             isDrawn = false;
-            drawnRelTo = null;
 
             if (drawnPathObj != null) {
                 GameObject.Destroy(drawnPathObj);
