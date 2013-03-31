@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Express 2012 for Windows Desktop
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "kerbcam", "KerbCam\kerbcam.csproj", "{ACC76DF4-A0A5-4BC5-91B4-EF5AF6D22B59}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{1C6D7BDB-71E3-414F-84D3-E5C408B0E054}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KerbCamTest", "KerbCamTest\KerbCamTest.csproj", "{9FB7F49A-8336-46EE-9227-5621B797D5A8}"
 EndProject
 Global

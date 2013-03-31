@@ -1,7 +1,16 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace KerbCam {
     class DebugUtil {
+        public static void LogException(Exception e) {
+            try {
+                Debug.LogError(e.ToString() + "\n" + e.StackTrace);
+            } catch (Exception) {
+                Debug.LogError("KerbCam failed to log an exception");
+            }
+        }
+
         public static void LogCameras() {
             // Display full camera list and basic information about each.
             foreach (var cam in Camera.allCameras) {

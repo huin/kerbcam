@@ -146,7 +146,7 @@ namespace KerbCam {
                 Vector3 right = rot * Vector3.right;
 
                 // Translation actions.
-                float dp = dt * BASE_TRANSLATE_SPEED * (float)Math.Exp(translateSliderPosition); 
+                float dp = dt * BASE_TRANSLATE_SPEED * (float)Math.Exp(translateSliderPosition);
                 if (trnForwards) {
                     translateTrn.localPosition += forward * dp;
                 }

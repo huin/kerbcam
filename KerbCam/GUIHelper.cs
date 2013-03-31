@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace KerbCam {
@@ -109,5 +110,45 @@ namespace KerbCam {
 
             GUI.Button(r, gcDrag, C.WindowResizeStyle);
         }
+    }
+
+    abstract class BaseWindow : UnityEngine.Object {
+        private bool isWindowOpen = false;
+        protected int windowId;
+        private Callback drawCallback;
+
+        public BaseWindow() {
+            this.windowId = GetInstanceID();
+            this.drawCallback = new Callback(DrawGUIWrap);
+        }
+
+        public void ToggleWindow() {
+            if (isWindowOpen) {
+                HideWindow();
+            } else {
+                ShowWindow();
+            }
+        }
+
+        public virtual void ShowWindow() {
+            isWindowOpen = true;
+            RenderingManager.AddToPostDrawQueue(3, drawCallback);
+            GUI.FocusWindow(windowId);
+        }
+
+        public virtual void HideWindow() {
+            isWindowOpen = false;
+            RenderingManager.RemoveFromPostDrawQueue(3, drawCallback);
+        }
+
+        private void DrawGUIWrap() {
+            try {
+                DrawGUI();
+            } catch (Exception e) {
+                DebugUtil.LogException(e);
+            }
+        }
+
+        protected abstract void DrawGUI();
     }
 }

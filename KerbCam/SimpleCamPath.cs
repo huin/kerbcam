@@ -200,93 +200,6 @@ namespace KerbCam {
         }
     }
 
-    public class PathRunner : CameraController.Client {
-        // Running state variables.
-        private CameraController controller = null;
-        private bool isPaused = false;
-        private float lastSeenTime;
-        private float curTime = 0.0F;
-
-        private SimpleCamPath path;
-
-        internal PathRunner(SimpleCamPath path) {
-            this.path = path;
-        }
-
-        public bool IsRunning {
-            get { return controller != null; }
-        }
-
-        /// The value of IsPaused only has an effect while running.
-        public bool IsPaused {
-            get { return isPaused; }
-            set { isPaused = value; }
-        }
-
-        /// The value of CurrentTime only has an effect while running.
-        public float CurrentTime {
-            get { return curTime; }
-            set { curTime = value; }
-        }
-
-        public void ToggleRunning(CameraController controller) {
-            if (!IsRunning)
-                StartRunning(controller);
-            else
-                StopRunning();
-        }
-
-        public void StartRunning(CameraController controller) {
-            if (IsRunning || path.NumKeys == 0) {
-                return;
-            }
-
-            controller.StartControlling(this);
-            this.controller = controller;
-
-            lastSeenTime = Time.realtimeSinceStartup;
-            path.UpdateTransform(State.instance.camControl.Camera.transform, curTime);
-        }
-
-        public void StopRunning() {
-            if (!IsRunning) {
-                return;
-            }
-            if (controller != null) {
-                controller.StopControlling();
-                controller = null;
-            }
-            isPaused = false;
-            curTime = 0f;
-        }
-
-        public void TogglePause() {
-            isPaused = !isPaused;
-        }
-
-        public void Update() {
-            if (!IsRunning)
-                return;
-
-            float worldTime = Time.realtimeSinceStartup;
-            if (!isPaused) {
-                float dt = worldTime - lastSeenTime;
-                curTime += dt;
-            }
-            lastSeenTime = worldTime;
-
-            path.UpdateTransform(controller.Camera.transform, curTime);
-            if (!isPaused && curTime >= path.MaxTime) {
-                // Pause at the end of the path.
-                isPaused = true;
-            }
-        }
-
-        void CameraController.Client.LoseController() {
-            controller = null;
-            StopRunning();
-        }
-    }
 
     public class SimpleCamPath {
 
@@ -308,7 +221,11 @@ namespace KerbCam {
             this.name = name;
             interpolator = new TransformPointInterpolator();
             transformsCurve = new Interpolator4<TransformPoint>(interpolator);
-            runner = new PathRunner(this);
+            runner = PathRunner.Create(this);
+        }
+
+        public void Destroy() {
+            runner.Destroy();
         }
 
         public PathRunner Runner {
@@ -496,7 +413,7 @@ namespace KerbCam {
 
             DoNewKeyControls();
 
-            if (State.instance.developerMode) {
+            if (State.developerMode) {
                 GUILayout.BeginHorizontal(); // BEGIN rotation choice
                 GUILayout.Label("Rotation type:");
                 var rotTypes = new RotType[] {
@@ -546,7 +463,7 @@ namespace KerbCam {
             bool shouldRun = GUILayout.Toggle(path.Runner.IsRunning, "");
             GUILayout.Label("Play");
             if (path.Runner.IsRunning != shouldRun) {
-                path.Runner.ToggleRunning(State.instance.camControl);
+                path.Runner.ToggleRunning(State.camControl);
             }
 
             path.Runner.IsPaused = GUILayout.Toggle(path.Runner.IsPaused, "");
@@ -629,7 +546,7 @@ namespace KerbCam {
 
             if (GUILayout.Button("View")) {
                 path.Runner.IsPaused = true;
-                path.Runner.StartRunning(State.instance.camControl);
+                path.Runner.StartRunning(State.camControl);
                 path.Runner.CurrentTime = path.TimeAt(selectedKeyIndex);
             }
 
