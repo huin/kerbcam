@@ -106,8 +106,10 @@ namespace KerbCam {
             if (ev.isKey) {
                 if (ev.Equals(State.KEY_PATH_TOGGLE_RUNNING)) {
                     State.SelectedPath.Runner.ToggleRunning(State.camControl);
+                    ev.Use();
                 } else if (ev.Equals(State.KEY_PATH_TOGGLE_PAUSE)) {
                     State.SelectedPath.Runner.TogglePause();
+                    ev.Use();
                 }
             }
         }

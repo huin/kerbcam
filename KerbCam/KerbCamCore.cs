@@ -44,11 +44,13 @@ namespace KerbCam {
                             DebugUtil.LogCameras();
                             DebugUtil.LogVessel(FlightGlobals.ActiveVessel);
                             DebugUtil.LogCamera(Camera.main);
+                            ev.Use();
                         }
                     }
 
                     if (ev.Equals(State.KEY_PATH_TOGGLE_WINDOW)) {
                         State.mainWindow.ToggleWindow();
+                        ev.Use();
                     }
                 }
             } catch (Exception e) {
