@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
 using UnityEngine;
 
 namespace KerbCam {
@@ -35,50 +33,6 @@ namespace KerbCam {
             WindowResizeStyle = new GUIStyle(GUI.skin.button);
 
             guiConstantsInitialized = true;
-        }
-    }
-
-    public class GUIHelper {
-        /// <summary>
-        /// Reverse operation of Event.KeyboardEvent.
-        /// </summary>
-        /// <param name="ev">The event to turn into a string.</param>
-        /// <returns>The event as a string.</returns>
-        public static string KeyboardEventString(Event ev) {
-            if (!ev.isKey) {
-                throw new Exception("Not a keyboard event: " + ev.ToString());
-            }
-
-            StringBuilder s = new StringBuilder(10);
-            var mods = ev.modifiers;
-            if ((mods & EventModifiers.Alt) != 0) s.Append("&");
-            if ((mods & EventModifiers.Control) != 0) s.Append("^");
-            if ((mods & EventModifiers.Command) != 0) s.Append("%");
-            if ((mods & EventModifiers.Shift) != 0) s.Append("#");
-            s.Append(ev.keyCode.ToString());
-
-            return s.ToString();
-        }
-
-        /// <summary>
-        /// Creates a readable string for the event.
-        /// </summary>
-        /// <param name="ev">The event to turn into a descriptive string.</param>
-        /// <returns>The description string.</returns>
-        public static string KeyboardEventHumanString(Event ev) {
-            if (!ev.isKey) {
-                throw new Exception("Not a keyboard event: " + ev.ToString());
-            }
-
-            List<string> p = new List<string>(5);
-            var mods = ev.modifiers;
-            if ((mods & EventModifiers.Alt) != 0) p.Add("Alt");
-            if ((mods & EventModifiers.Control) != 0) p.Add("Ctrl");
-            if ((mods & EventModifiers.Command) != 0) p.Add("Cmd");
-            if ((mods & EventModifiers.Shift) != 0) p.Add("Shift");
-            p.Add(ev.keyCode.ToString());
-
-            return string.Join("+", p.ToArray());
         }
     }
 

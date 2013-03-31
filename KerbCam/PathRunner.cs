@@ -98,20 +98,28 @@ namespace KerbCam {
             }
         }
 
+        private void HandleToggleRun() {
+            State.SelectedPath.Runner.ToggleRunning(State.camControl);
+        }
+
+        private void HandleTogglePause() {
+            State.SelectedPath.Runner.TogglePause();
+        }
+
         /// <summary>
-        /// Overrides MonoBehaviour.OnGUI.
+        /// Overrides MonoBehaviour.OnEnable.
         /// </summary>
-        internal void OnGUI() {
-            var ev = Event.current;
-            if (ev.isKey) {
-                if (ev.Equals(State.KEY_PATH_TOGGLE_RUNNING)) {
-                    State.SelectedPath.Runner.ToggleRunning(State.camControl);
-                    ev.Use();
-                } else if (ev.Equals(State.KEY_PATH_TOGGLE_PAUSE)) {
-                    State.SelectedPath.Runner.TogglePause();
-                    ev.Use();
-                }
-            }
+        public void OnEnable() {
+            State.keyBindings.Listen(BoundKey.KEY_PATH_TOGGLE_RUNNING, HandleToggleRun);
+            State.keyBindings.Listen(BoundKey.KEY_PATH_TOGGLE_PAUSE, HandleTogglePause);
+        }
+
+        /// <summary>
+        /// Overrides MonoBehaviour.OnDisable.
+        /// </summary>
+        public void OnDisable() {
+            State.keyBindings.Unlisten(BoundKey.KEY_PATH_TOGGLE_RUNNING, HandleToggleRun);
+            State.keyBindings.Unlisten(BoundKey.KEY_PATH_TOGGLE_PAUSE, HandleTogglePause);
         }
 
         void CameraController.Client.LoseController() {

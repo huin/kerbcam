@@ -47,6 +47,7 @@
     <Compile Include="CameraControlGUI.cs" />
     <Compile Include="CameraController.cs" />
     <Compile Include="ConfigWindow.cs" />
+    <Compile Include="KeyBind.cs" />
     <Compile Include="PathRunner.cs" />
     <Compile Include="DebugUtil.cs" />
     <Compile Include="QuatUtil.cs" />

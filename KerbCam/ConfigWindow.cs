@@ -23,9 +23,9 @@ namespace KerbCam {
             // BEGIN vertical scroll.
             scroll = GUILayout.BeginScrollView(scroll);
 
-            DoBinding(State.KEY_PATH_TOGGLE_RUNNING, "play/stop selected path");
-            DoBinding(State.KEY_PATH_TOGGLE_PAUSE, "pause selected path");
-            DoBinding(State.KEY_TOGGLE_WINDOW, "toggle KerbCam window");
+            foreach (var kb in State.keyBindings.Bindings()) {
+                DoBinding(kb);
+            }
 
             State.developerMode = GUILayout.Toggle(
                 State.developerMode, "Developer mode - enables experimental features.");
@@ -45,10 +45,11 @@ namespace KerbCam {
             GUI.DragWindow(new Rect(0, 0, 10000, 25));
         }
 
-        private void DoBinding(Event binding, string desc) {
+        private void DoBinding(KeyBind<BoundKey> kb) {
             GUILayout.BeginHorizontal();
-            GUILayout.Label(desc, GUILayout.Width(165));
-            GUILayout.Button(GUIHelper.KeyboardEventHumanString(binding), GUILayout.Width(120));
+            GUILayout.Label(kb.description, GUILayout.Width(165));
+            GUILayout.Button(kb.HumanBinding,
+                GUILayout.Width(120));
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
         }

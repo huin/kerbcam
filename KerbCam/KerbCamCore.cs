@@ -1,8 +1,8 @@
+using KSP.IO;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
-using KSP.IO;
 
 namespace KerbCam {
 
@@ -32,7 +32,11 @@ namespace KerbCam {
 
         public void Awake() {
             try {
+                State.keyBindings.Listen(BoundKey.KEY_DEBUG, HandleDebug);
+
                 State.LoadConfig();
+                // TODO: Save configuration at a more appropriate time.
+                // This save is for testing of the saving and defaults only.
                 State.SaveConfig();
             } catch (Exception e) {
                 DebugUtil.LogException(e);
@@ -45,39 +49,48 @@ namespace KerbCam {
 
             try {
                 var ev = Event.current;
-
-                if (ev.isKey) {
-                    if (State.developerMode) {
-                        if (ev.Equals(State.KEY_DEBUG)) {
-                            // Random bits of logging used by the developer to
-                            // work out whatever the heck he's doing.
-                            DebugUtil.LogCameras();
-                            DebugUtil.LogVessel(FlightGlobals.ActiveVessel);
-                            DebugUtil.LogCamera(Camera.main);
-                            ev.Use();
-                        }
-                    }
-
-                    if (ev.Equals(State.KEY_TOGGLE_WINDOW)) {
-                        State.mainWindow.ToggleWindow();
-                        ev.Use();
-                    }
-                }
+                State.keyBindings.HandleEvent(ev);
             } catch (Exception e) {
                 DebugUtil.LogException(e);
             }
         }
+
+        private void HandleDebug() {
+            if (State.developerMode) {
+                // Random bits of logging used by the developer to
+                // work out whatever the heck he's doing.
+                DebugUtil.LogCameras();
+                DebugUtil.LogVessel(FlightGlobals.ActiveVessel);
+                DebugUtil.LogCamera(Camera.main);
+            }
+        }
+    }
+
+    public enum BoundKey {
+        KEY_PATH_TOGGLE_RUNNING,
+        KEY_PATH_TOGGLE_PAUSE,
+        KEY_TOGGLE_WINDOW,
+        KEY_DEBUG
     }
 
     /// <summary>
     /// Global stored state of KerbCam.
     /// </summary>
     class State {
-        // TODO: Custom and additional keybindings.
-        public static Event KEY_PATH_TOGGLE_RUNNING = Event.KeyboardEvent(KeyCode.Insert.ToString());
-        public static Event KEY_PATH_TOGGLE_PAUSE = Event.KeyboardEvent(KeyCode.Home.ToString());
-        public static Event KEY_TOGGLE_WINDOW = Event.KeyboardEvent(KeyCode.F8.ToString());
-        public static Event KEY_DEBUG = Event.KeyboardEvent(KeyCode.F7.ToString());
+        public static KeyBindings<BoundKey> keyBindings = new KeyBindings<BoundKey>(
+            new KeyBind<BoundKey>(
+                BoundKey.KEY_PATH_TOGGLE_RUNNING, "play/stop selected path",
+                Event.KeyboardEvent(KeyCode.Insert.ToString())),
+            new KeyBind<BoundKey>(
+                BoundKey.KEY_PATH_TOGGLE_PAUSE, "pause selected path",
+                Event.KeyboardEvent(KeyCode.Home.ToString())),
+            new KeyBind<BoundKey>(
+                BoundKey.KEY_TOGGLE_WINDOW, "toggle KerbCam window",
+                Event.KeyboardEvent(KeyCode.F8.ToString())),
+            new KeyBind<BoundKey>(
+                BoundKey.KEY_DEBUG, "log debug data (developer mode only)",
+                Event.KeyboardEvent(KeyCode.F7.ToString()))
+            );
 
         private static SimpleCamPath selectedPath;
         public static List<SimpleCamPath> paths = new List<SimpleCamPath>();
@@ -89,30 +102,15 @@ namespace KerbCam {
         public static void LoadConfig() {
             var config = KSP.IO.PluginConfiguration.CreateForType<State>();
             config.load();
-            KEY_PATH_TOGGLE_RUNNING = LoadKeyboardEvent(config, "KEY_PATH_TOGGLE_RUNNING", KeyCode.Insert.ToString());
-            KEY_PATH_TOGGLE_PAUSE = LoadKeyboardEvent(config, "KEY_PATH_TOGGLE_PAUSE", KeyCode.Home.ToString());
-            KEY_TOGGLE_WINDOW = LoadKeyboardEvent(config, "KEY_TOGGLE_WINDOW", KeyCode.F8.ToString());
+            keyBindings.LoadFromConfig(config.GetValue<PluginConfigNode>("keyBindings", null));
         }
 
         public static void SaveConfig() {
             var config = KSP.IO.PluginConfiguration.CreateForType<State>();
-            SaveKeyboardEvent(config, "KEY_PATH_TOGGLE_RUNNING", KEY_PATH_TOGGLE_RUNNING);
-            SaveKeyboardEvent(config, "KEY_PATH_TOGGLE_PAUSE", KEY_PATH_TOGGLE_PAUSE);
-            SaveKeyboardEvent(config, "KEY_TOGGLE_WINDOW", KEY_TOGGLE_WINDOW);
+            PluginConfigNode keyBindingsNode = new PluginConfigNode();
+            config.SetValue("keyBindings", keyBindingsNode);
+            keyBindings.SaveToConfig(keyBindingsNode);
             config.save();
-        }
-
-        private static Event LoadKeyboardEvent(
-            PluginConfiguration config, string key, string _default) {
-
-            string bindString = config.GetValue<string>(key, _default);
-            return Event.KeyboardEvent(bindString);
-        }
-
-        private static void SaveKeyboardEvent(
-            PluginConfiguration config, string key, Event ev) {
-
-            config.SetValue(key, GUIHelper.KeyboardEventString(ev));
         }
 
         public static void RemovePathAt(int index) {
@@ -174,6 +172,8 @@ namespace KerbCam {
             helpWindow = new HelpWindow(assembly);
             cameraGui = new CameraControlGUI(State.camControl);
             configWindow = new ConfigWindow();
+
+            State.keyBindings.Listen(BoundKey.KEY_TOGGLE_WINDOW, ToggleWindow);
         }
 
         public float GetGuiMinHeight() {
