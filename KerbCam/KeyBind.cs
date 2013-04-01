@@ -15,6 +15,13 @@ namespace KerbCam {
         public string description;
         public event KeyEvent ev;
 
+        public KeyBind(KeyT key, string description, KeyCode defaultKeyCode) {
+            this.key = key;
+            this.description = description;
+            this.binding = null;
+            this.defaultBind = Event.KeyboardEvent(defaultKeyCode.ToString());
+        }
+
         public KeyBind(KeyT key, string description, Event defaultBind) {
             this.key = key;
             this.description = description;
@@ -89,11 +96,9 @@ namespace KerbCam {
         private Dictionary<KeyT, KeyBind<KeyT>> keyToBinding =
             new Dictionary<KeyT, KeyBind<KeyT>>();
 
-        public KeyBindings(params KeyBind<KeyT>[] bindings) {
-            foreach (var kb in bindings) {
-                this.bindings.Add(kb);
-                keyToBinding[kb.Key] = kb;
-            }
+        public void AddBinding(KeyBind<KeyT> kb) {
+            this.bindings.Add(kb);
+            keyToBinding[kb.Key] = kb;
         }
 
         public void Listen(KeyT key, KeyEvent del) {

@@ -10,7 +10,7 @@ namespace KerbCam {
         public static GUIStyle WindowResizeStyle;
         public static GUIStyle UnpaddedButtonStyle;
 
-        public static void InitGUIConstants() {
+        public static void Init() {
             if (guiConstantsInitialized) {
                 return;
             }

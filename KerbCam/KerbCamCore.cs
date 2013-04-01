@@ -32,6 +32,9 @@ namespace KerbCam {
 
         public void Awake() {
             try {
+                C.Init();
+                State.Init();
+
                 State.keyBindings.Listen(BoundKey.KEY_DEBUG, HandleDebug);
 
                 State.LoadConfig();
@@ -48,8 +51,7 @@ namespace KerbCam {
                 return;
 
             try {
-                var ev = Event.current;
-                State.keyBindings.HandleEvent(ev);
+                State.keyBindings.HandleEvent(Event.current);
             } catch (Exception e) {
                 DebugUtil.LogException(e);
             }
@@ -77,21 +79,22 @@ namespace KerbCam {
     /// Global stored state of KerbCam.
     /// </summary>
     class State {
-        public static KeyBindings<BoundKey> keyBindings = new KeyBindings<BoundKey>(
-            new KeyBind<BoundKey>(
+        public static void Init() {
+            keyBindings.AddBinding(new KeyBind<BoundKey>(
                 BoundKey.KEY_PATH_TOGGLE_RUNNING, "play/stop selected path",
-                Event.KeyboardEvent(KeyCode.Insert.ToString())),
-            new KeyBind<BoundKey>(
+                KeyCode.Insert));
+            keyBindings.AddBinding(new KeyBind<BoundKey>(
                 BoundKey.KEY_PATH_TOGGLE_PAUSE, "pause selected path",
-                Event.KeyboardEvent(KeyCode.Home.ToString())),
-            new KeyBind<BoundKey>(
+                KeyCode.Home));
+            keyBindings.AddBinding(new KeyBind<BoundKey>(
                 BoundKey.KEY_TOGGLE_WINDOW, "toggle KerbCam window",
-                Event.KeyboardEvent(KeyCode.F8.ToString())),
-            new KeyBind<BoundKey>(
+                KeyCode.F8));
+            keyBindings.AddBinding(new KeyBind<BoundKey>(
                 BoundKey.KEY_DEBUG, "log debug data (developer mode only)",
-                Event.KeyboardEvent(KeyCode.F7.ToString()))
-            );
+                KeyCode.F7));
+        }
 
+        public static KeyBindings<BoundKey> keyBindings = new KeyBindings<BoundKey>();
         private static SimpleCamPath selectedPath;
         public static List<SimpleCamPath> paths = new List<SimpleCamPath>();
         private static int numCreatedPaths = 0;
@@ -203,8 +206,6 @@ namespace KerbCam {
 
         private void DoGUI(int windowID) {
             try {
-                C.InitGUIConstants();
-
                 if (State.SelectedPath != null) {
                     // A path is selected.
                     if (pathEditor == null || !pathEditor.IsForPath(State.SelectedPath)) {
