@@ -18,39 +18,50 @@ namespace KerbCam {
 
     // Plugin behaviour class.
     public class KerbCam : MonoBehaviour {
-        private bool isEnabled = false;
+        private bool shouldRun = false;
+        private bool initialized = false;
 
-        public void OnLevelWasLoaded() {
-            isEnabled = (FlightGlobals.fetch == null || FlightGlobals.ActiveVessel == null)
+        private bool ShouldRun() {
+            bool shouldRunNow =
+                FlightGlobals.fetch != null
+                && FlightGlobals.ActiveVessel != null
                 && HighLogic.LoadedScene == GameScenes.FLIGHT;
 
-            if (!isEnabled) {
-                State.Stop();
-                State.mainWindow.HideWindow();
+            if (shouldRun != shouldRunNow) {
+                if (!shouldRunNow) {
+                    State.Stop();
+                } else {
+                    Init();
+                }
             }
+
+            shouldRun = shouldRunNow;
+            return shouldRun;
         }
 
-        public void Awake() {
-            try {
-                C.Init();
-                State.Init();
-
-                State.keyBindings.Listen(BoundKey.KEY_DEBUG, HandleDebug);
-
-                State.LoadConfig();
-                // TODO: Save configuration at a more appropriate time.
-                // This save is for testing of the saving and defaults only.
-                State.SaveConfig();
-            } catch (Exception e) {
-                DebugUtil.LogException(e);
+        private void Init() {
+            if (initialized) {
+                return;
             }
+
+            C.Init();
+            State.Init();
+
+            State.keyBindings.Listen(BoundKey.KEY_DEBUG, HandleDebug);
+
+            State.LoadConfig();
+            // TODO: Save configuration at a more appropriate time.
+            // This save is for testing of the saving and defaults only.
+            State.SaveConfig();
+
+            initialized = true;
         }
 
         public void OnGUI() {
-            if (!isEnabled)
-                return;
-
             try {
+                if (!ShouldRun()) {
+                    return;
+                }
                 State.keyBindings.HandleEvent(Event.current);
             } catch (Exception e) {
                 DebugUtil.LogException(e);
@@ -79,7 +90,21 @@ namespace KerbCam {
     /// Global stored state of KerbCam.
     /// </summary>
     class State {
+        private static bool initialized = false;
+        public static KeyBindings<BoundKey> keyBindings;
+        private static SimpleCamPath selectedPath;
+        public static List<SimpleCamPath> paths;
+        private static int numCreatedPaths = 0;
+        public static bool developerMode = false;
+        public static CameraController camControl;
+        public static MainWindow mainWindow;
+
         public static void Init() {
+            if (initialized) {
+                return;
+            }
+
+            keyBindings = new KeyBindings<BoundKey>();
             keyBindings.AddBinding(new KeyBind<BoundKey>(
                 BoundKey.KEY_PATH_TOGGLE_RUNNING, "play/stop selected path",
                 KeyCode.Insert));
@@ -92,15 +117,13 @@ namespace KerbCam {
             keyBindings.AddBinding(new KeyBind<BoundKey>(
                 BoundKey.KEY_DEBUG, "log debug data (developer mode only)",
                 KeyCode.F7));
-        }
 
-        public static KeyBindings<BoundKey> keyBindings = new KeyBindings<BoundKey>();
-        private static SimpleCamPath selectedPath;
-        public static List<SimpleCamPath> paths = new List<SimpleCamPath>();
-        private static int numCreatedPaths = 0;
-        public static bool developerMode = false;
-        public static CameraController camControl = new CameraController();
-        public static MainWindow mainWindow = new MainWindow();
+            paths = new List<SimpleCamPath>();
+            camControl = new CameraController();
+            mainWindow = new MainWindow();
+
+            initialized = true;
+        }
 
         public static void LoadConfig() {
             var config = KSP.IO.PluginConfiguration.CreateForType<State>();
@@ -150,9 +173,14 @@ namespace KerbCam {
             }
         }
 
+        public static bool Initialized {
+            get { return initialized; }
+        }
+
         public static void Stop() {
             SelectedPath = null;
             camControl.StopControlling();
+            mainWindow.HideWindow();
         }
     }
 

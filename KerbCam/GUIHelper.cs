@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace KerbCam {
     class C {
-        private static bool guiConstantsInitialized = false;
+        private static bool intialized = false;
 
         public static GUIStyle DeleteButtonStyle;
         public static GUIStyle DisabledButtonStyle;
@@ -11,28 +11,29 @@ namespace KerbCam {
         public static GUIStyle UnpaddedButtonStyle;
 
         public static void Init() {
-            if (guiConstantsInitialized) {
+            if (intialized) {
                 return;
             }
 
-            Color disabledTextColor = new Color(0.7f, 0.7f, 0.7f);
+            GUISkin skin = HighLogic.Skin;
 
-            DeleteButtonStyle = new GUIStyle(GUI.skin.button);
+            Color disabledTextColor = new Color(0.7f, 0.7f, 0.7f);
+            DeleteButtonStyle = new GUIStyle(skin.button);
             DeleteButtonStyle.normal.textColor = new Color(1f, 0f, 0f);
 
-            DisabledButtonStyle = new GUIStyle(GUI.skin.button);
+            DisabledButtonStyle = new GUIStyle(skin.button);
             DisabledButtonStyle.active.textColor = disabledTextColor;
             DisabledButtonStyle.focused.textColor = disabledTextColor;
             DisabledButtonStyle.hover.textColor = disabledTextColor;
             DisabledButtonStyle.normal.textColor = disabledTextColor;
 
-            UnpaddedButtonStyle = new GUIStyle(GUI.skin.button);
+            UnpaddedButtonStyle = new GUIStyle(skin.button);
             UnpaddedButtonStyle.margin = new RectOffset(0, 0, 0, 0);
             UnpaddedButtonStyle.padding = new RectOffset(0, 0, 0, 0);
 
-            WindowResizeStyle = new GUIStyle(GUI.skin.button);
+            WindowResizeStyle = new GUIStyle(skin.button);
 
-            guiConstantsInitialized = true;
+            intialized = true;
         }
     }
 
