@@ -4,7 +4,7 @@ using UnityEngine;
 namespace KerbCam {
     class ConfigWindow : BaseWindow {
         private WindowResizer resizer = new WindowResizer(
-                new Rect(10, 200, 380, 240),
+                new Rect(50, 255, 380, 240),
                 new Vector2(380, 240));
         private Vector2 scroll = new Vector2();
         private KeyBind<BoundKey> captureTarget;
@@ -19,32 +19,42 @@ namespace KerbCam {
         }
 
         private void DoGUI(int windowID) {
-            GUILayout.BeginVertical(); // BEGIN outer container
+            try {
+                GUILayout.BeginVertical(); // BEGIN outer container
 
-            // BEGIN vertical scroll.
-            scroll = GUILayout.BeginScrollView(scroll);
+                // BEGIN vertical scroll.
+                scroll = GUILayout.BeginScrollView(scroll);
 
-            foreach (var kb in State.keyBindings.Bindings()) {
-                DoBinding(kb);
+                foreach (var kb in State.keyBindings.Bindings()) {
+                    DoBinding(kb);
+                }
+
+                State.developerMode = GUILayout.Toggle(
+                    State.developerMode,
+                    "Developer mode - enables experimental features.");
+
+                GUILayout.EndScrollView();
+                // END vertical scroll.
+
+                GUILayout.BeginHorizontal(); // BEGIN lower controls
+                if (GUILayout.Button("Save")) {
+                    State.SaveConfig();
+                }
+                if (GUILayout.Button("Load")) {
+                    State.LoadConfig();
+                }
+                GUILayout.FlexibleSpace();
+                if (GUILayout.Button("Close")) {
+                    HideWindow();
+                }
+                resizer.HandleResize();
+                GUILayout.EndHorizontal(); // END lower controls
+                GUILayout.EndVertical(); // END outer container
+
+                GUI.DragWindow(new Rect(0, 0, 10000, 25));
+            } catch (Exception e) {
+                DebugUtil.LogException(e);
             }
-
-            State.developerMode = GUILayout.Toggle(
-                State.developerMode,
-                "Developer mode - enables experimental features.");
-
-            GUILayout.EndScrollView();
-            // END vertical scroll.
-
-            GUILayout.BeginHorizontal(); // BEGIN lower controls
-            GUILayout.FlexibleSpace();
-            if (GUILayout.Button("Close")) {
-                HideWindow();
-            }
-            resizer.HandleResize();
-            GUILayout.EndHorizontal(); // END lower controls
-            GUILayout.EndVertical(); // END outer container
-
-            GUI.DragWindow(new Rect(0, 0, 10000, 25));
         }
 
         private void DoBinding(KeyBind<BoundKey> kb) {

@@ -59,17 +59,8 @@ namespace KerbCam {
             return false;
         }
 
-        /// <summary>
-        /// Loads the key binding from the configuration node.
-        /// </summary>
-        /// <param name="config">The node to load from. Can be null.</param>
-        public void LoadFromConfig(PluginConfigNode config) {
-            string evStr = null;
-            if (config != null) {
-                evStr = config.GetValue<string>(key.ToString());
-            }
+        public void SetFromConfig(string evStr) {
             if (evStr == null) {
-                // No binding set yet.
                 SetBinding(defaultBind);
             } else if (evStr == "") {
                 // Explicitly unset.
@@ -80,18 +71,12 @@ namespace KerbCam {
             }
         }
 
-        /// <summary>
-        /// Saves the key binding to the configuration node.
-        /// </summary>
-        /// <param name="config">The node to save to. Must not be null.</param>
-        public void SaveToConfig(PluginConfigNode config) {
-            string evStr;
+        public string GetForConfig() {
             if (binding == null) {
-                evStr = "";
+                return "";
             } else {
-                evStr = EventHelper.KeyboardEventString(binding);
+                return EventHelper.KeyboardEventString(binding);
             }
-            config.SetValue(key.ToString(), evStr);
         }
     }
 
@@ -141,9 +126,9 @@ namespace KerbCam {
         /// Loads the key bindings from the configuration node.
         /// </summary>
         /// <param name="config">The node to load from. Can be null.</param>
-        public void LoadFromConfig(PluginConfigNode config) {
+        public void LoadFromConfig(ConfigNode node) {
             foreach (var kb in bindings) {
-                kb.LoadFromConfig(config);
+                kb.SetFromConfig(node == null ? null : node.GetValue(kb.Key.ToString()));
             }
         }
 
@@ -151,9 +136,9 @@ namespace KerbCam {
         /// Saves the key bindings to the configuration node.
         /// </summary>
         /// <param name="config">The node to save to. Must not be null.</param>
-        public void SaveToConfig(PluginConfigNode config) {
+        public void SaveToConfig(ConfigNode node) {
             foreach (var kb in bindings) {
-                kb.SaveToConfig(config);
+                node.AddValue(kb.Key.ToString(), kb.GetForConfig());
             }
         }
 

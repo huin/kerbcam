@@ -43,6 +43,7 @@ namespace KerbCam {
             if (initialized) {
                 return;
             }
+            initialized = true;
 
             C.Init();
             State.Init();
@@ -50,11 +51,6 @@ namespace KerbCam {
             State.keyBindings.Listen(BoundKey.KEY_DEBUG, HandleDebug);
 
             State.LoadConfig();
-            // TODO: Save configuration at a more appropriate time.
-            // This save is for testing of the saving and defaults only.
-            State.SaveConfig();
-
-            initialized = true;
         }
 
         public void OnGUI() {
@@ -103,6 +99,7 @@ namespace KerbCam {
             if (initialized) {
                 return;
             }
+            initialized = true;
 
             keyBindings = new KeyBindings<BoundKey>();
             keyBindings.AddBinding(new KeyBind<BoundKey>(
@@ -121,22 +118,24 @@ namespace KerbCam {
             paths = new List<SimpleCamPath>();
             camControl = new CameraController();
             mainWindow = new MainWindow();
-
-            initialized = true;
         }
 
         public static void LoadConfig() {
-            var config = KSP.IO.PluginConfiguration.CreateForType<State>();
-            config.load();
-            keyBindings.LoadFromConfig(config.GetValue<PluginConfigNode>("keyBindings", null));
+            ConfigNode config;
+            config = ConfigNode.Load("kerbcam.cfg");
+            if (config == null) {
+                Debug.LogWarning("KerbCam could not load its configuration. This is okay if one has not been saved yet.");
+                return;
+            }
+            keyBindings.LoadFromConfig(config.GetNode("keyBindings"));
         }
 
         public static void SaveConfig() {
-            var config = KSP.IO.PluginConfiguration.CreateForType<State>();
-            PluginConfigNode keyBindingsNode = new PluginConfigNode();
-            config.SetValue("keyBindings", keyBindingsNode);
-            keyBindings.SaveToConfig(keyBindingsNode);
-            config.save();
+            var config = new ConfigNode("kerbcam");
+            keyBindings.SaveToConfig(config.AddNode("keyBindings"));
+            if (!config.Save("kerbcam.cfg")) {
+                Debug.LogError("Could not save to kerbcam.cfg");
+            }
         }
 
         public static void RemovePathAt(int index) {
@@ -198,7 +197,7 @@ namespace KerbCam {
         public MainWindow() {
             assembly = Assembly.GetCallingAssembly();
             resizer = new WindowResizer(
-                new Rect(10, 100, 200, 200),
+                new Rect(50, 50, 200, 200),
                 new Vector2(GetGuiMinHeight(), GetGuiMinWidth()));
             helpWindow = new HelpWindow(assembly);
             cameraGui = new CameraControlGUI(State.camControl);
