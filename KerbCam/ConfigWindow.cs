@@ -4,9 +4,10 @@ using UnityEngine;
 namespace KerbCam {
     class ConfigWindow : BaseWindow {
         private WindowResizer resizer = new WindowResizer(
-                new Rect(10, 100, 340, 200),
-                new Vector2(340, 200));
+                new Rect(10, 200, 380, 240),
+                new Vector2(380, 240));
         private Vector2 scroll = new Vector2();
+        private KeyBind<BoundKey> captureTarget;
 
         protected override void DrawGUI() {
             GUI.skin = HighLogic.Skin;
@@ -49,9 +50,54 @@ namespace KerbCam {
         private void DoBinding(KeyBind<BoundKey> kb) {
             GUILayout.BeginHorizontal();
             GUILayout.Label(kb.description, GUILayout.Width(165));
-            GUILayout.Button(kb.HumanBinding, GUILayout.Width(120));
+            string label;
+            if (IsCapturing() && kb == captureTarget) {
+                label = "...";
+            } else {
+                label = kb.HumanBinding;
+            }
+            if (GUILayout.Button(label, GUILayout.Width(110))) {
+                if (captureTarget == null) {
+                    StartKeyCapture(kb);
+                } else {
+                    CancelKeyCapture();
+                }
+            }
+            if (GUILayout.Button("clear", C.DeleteButtonStyle)) {
+                CancelKeyCapture();
+                kb.SetBinding(null);
+            }
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
+        }
+
+        private void HandleCapturedKey(Event ev) {
+            if (ev.keyCode == KeyCode.Escape) {
+                CancelKeyCapture();
+            } else {
+                CompleteKeyCapture(ev);
+            }
+        }
+
+        private bool IsCapturing() {
+            return captureTarget != null;
+        }
+
+        private void StartKeyCapture(KeyBind<BoundKey> kb) {
+            CancelKeyCapture();
+            State.keyBindings.captureAnyKey += HandleCapturedKey;
+            captureTarget = kb;
+        }
+
+        private void CancelKeyCapture() {
+            State.keyBindings.captureAnyKey -= HandleCapturedKey;
+            captureTarget = null;
+        }
+
+        private void CompleteKeyCapture(Event ev) {
+            captureTarget.SetBinding(ev);
+            State.keyBindings.captureAnyKey -= HandleCapturedKey;
+            captureTarget = null;
         }
     }
 }

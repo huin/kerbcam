@@ -6,6 +6,7 @@ using UnityEngine;
 
 namespace KerbCam {
     public delegate void KeyEvent();
+    public delegate void AnyKeyEvent(Event ev);
 
     class KeyBind<KeyT> {
         private Event binding;
@@ -18,15 +19,25 @@ namespace KerbCam {
         public KeyBind(KeyT key, string description, KeyCode defaultKeyCode) {
             this.key = key;
             this.description = description;
-            this.binding = null;
-            this.defaultBind = Event.KeyboardEvent(defaultKeyCode.ToString());
+            this.defaultBind = EventHelper.KeyboardUpEvent(defaultKeyCode.ToString());
+            SetBinding(defaultBind);
         }
 
         public KeyBind(KeyT key, string description, Event defaultBind) {
             this.key = key;
             this.description = description;
-            this.binding = null;
             this.defaultBind = defaultBind;
+            SetBinding(defaultBind);
+        }
+
+        public void SetBinding(Event ev) {
+            if (ev != null) {
+                binding = new Event(ev);
+                humanBinding = EventHelper.KeyboardEventHumanString(binding);
+            } else {
+                binding = null;
+                humanBinding = "<unbound>";
+            }
         }
 
         public KeyT Key {
@@ -59,19 +70,13 @@ namespace KerbCam {
             }
             if (evStr == null) {
                 // No binding set yet.
-                binding = defaultBind;
+                SetBinding(defaultBind);
             } else if (evStr == "") {
                 // Explicitly unset.
-                binding = null;
+                SetBinding(null);
             } else {
                 // Configured.
-                binding = Event.KeyboardEvent(evStr);
-            }
-
-            if (binding != null) {
-                humanBinding = EventHelper.KeyboardEventHumanString(binding);
-            } else {
-                humanBinding = "<unbound>";
+                SetBinding(EventHelper.KeyboardUpEvent(evStr));
             }
         }
 
@@ -98,6 +103,12 @@ namespace KerbCam {
         private Dictionary<KeyT, KeyBind<KeyT>> keyToBinding =
             new Dictionary<KeyT, KeyBind<KeyT>>();
 
+        /// <summary>
+        /// Captures *all* key events. Will block other key events while at
+        /// least one delegate is set.
+        /// </summary>
+        public event AnyKeyEvent captureAnyKey;
+
         public void AddBinding(KeyBind<KeyT> kb) {
             this.bindings.Add(kb);
             keyToBinding[kb.Key] = kb;
@@ -112,10 +123,15 @@ namespace KerbCam {
         }
 
         public void HandleEvent(Event ev) {
-            if (ev.isKey) {
-                foreach (var kb in bindings) {
-                    if (kb.MatchAndFireEvent(ev)) {
-                        return;
+            if (ev.isKey && ev.type == EventType.KeyUp) {
+                if (captureAnyKey != null) {
+                    captureAnyKey(ev);
+                    ev.Use();
+                } else {
+                    foreach (var kb in bindings) {
+                        if (kb.MatchAndFireEvent(ev)) {
+                            return;
+                        }
                     }
                 }
             }
@@ -148,7 +164,7 @@ namespace KerbCam {
 
     public class EventHelper {
         /// <summary>
-        /// Reverse operation of Event.KeyboardEvent.
+        /// Reverse operation of Event.KeyboardEvent/KeyboardUpEvent.
         /// </summary>
         /// <param name="ev">The event to turn into a string.</param>
         /// <returns>The event as a string.</returns>
@@ -166,6 +182,12 @@ namespace KerbCam {
             s.Append(ev.keyCode.ToString());
 
             return s.ToString();
+        }
+
+        public static Event KeyboardUpEvent(string evStr) {
+            Event ev = Event.KeyboardEvent(evStr);
+            ev.type = EventType.KeyUp;
+            return ev;
         }
 
         /// <summary>
