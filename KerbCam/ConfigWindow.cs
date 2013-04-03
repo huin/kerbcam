@@ -28,7 +28,8 @@ namespace KerbCam {
             }
 
             State.developerMode = GUILayout.Toggle(
-                State.developerMode, "Developer mode - enables experimental features.");
+                State.developerMode,
+                "Developer mode - enables experimental features.");
 
             GUILayout.EndScrollView();
             // END vertical scroll.
@@ -48,8 +49,7 @@ namespace KerbCam {
         private void DoBinding(KeyBind<BoundKey> kb) {
             GUILayout.BeginHorizontal();
             GUILayout.Label(kb.description, GUILayout.Width(165));
-            GUILayout.Button(kb.HumanBinding,
-                GUILayout.Width(120));
+            GUILayout.Button(kb.HumanBinding, GUILayout.Width(120));
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
         }
