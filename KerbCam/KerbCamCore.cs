@@ -83,7 +83,7 @@ namespace KerbCam {
         KEY_PATH_TOGGLE_RUNNING,
         KEY_PATH_TOGGLE_PAUSE,
         KEY_TOGGLE_WINDOW,
-        KEY_DEBUG
+        KEY_DEBUG,
     }
 
     /// <summary>

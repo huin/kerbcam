@@ -39,7 +39,9 @@ namespace KerbCam {
 
         public bool MatchAndFireEvent(Event ev) {
             if (this.binding != null && this.binding.Equals(ev)) {
-                this.ev();
+                if (this.ev != null) {
+                    this.ev();
+                }
                 ev.Use();
                 return true;
             }
