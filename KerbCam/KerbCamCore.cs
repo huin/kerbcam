@@ -122,14 +122,14 @@ namespace KerbCam {
                 Debug.LogWarning("KerbCam could not load its configuration. This is okay if one has not been saved yet.");
                 return;
             }
-            keyBindings.LoadFromConfig(config.GetNode("KEY_BINDINGS"));
-            developerMode = bool.Parse(config.GetValue("DEV_MODE"));
+            keyBindings.Load(config.GetNode("KEY_BINDINGS"));
+            ConfigUtil.Parse<bool>(config, "DEV_MODE", out developerMode, false);
         }
 
         public static void SaveConfig() {
             var config = new ConfigNode("kerbcam");
-            keyBindings.SaveToConfig(config.AddNode("KEY_BINDINGS"));
-            config.AddValue("DEV_MODE", developerMode.ToString());
+            keyBindings.Save(config.AddNode("KEY_BINDINGS"));
+            ConfigUtil.Write<bool>(config, "DEV_MODE", developerMode);
             if (!config.Save("kerbcam.cfg")) {
                 Debug.LogError("Could not save to kerbcam.cfg");
             }

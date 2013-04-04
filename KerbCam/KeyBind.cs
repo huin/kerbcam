@@ -73,7 +73,7 @@ namespace KerbCam {
         }
     }
 
-    class KeyBindings<KeyT> {
+    class KeyBindings<KeyT> : IConfigNode {
         // TODO: Maybe optimize this with a hash of the binding, but be
         // careful about hashes changing when the binding changes.
         private List<KeyBind> bindings =
@@ -115,30 +115,22 @@ namespace KerbCam {
             }
         }
 
-        /// <summary>
-        /// Loads the key bindings from the configuration node.
-        /// </summary>
-        /// <param name="config">The node to load from. Can be null.</param>
-        public void LoadFromConfig(ConfigNode node) {
+        public IEnumerable<KeyBind> Bindings() {
+            return bindings;
+        }
+
+        public void Load(ConfigNode node) {
             foreach (var key in keyToBinding.Keys) {
                 var kb = keyToBinding[key];
                 kb.SetFromConfig(node == null ? null : node.GetValue(key.ToString()));
             }
         }
 
-        /// <summary>
-        /// Saves the key bindings to the configuration node.
-        /// </summary>
-        /// <param name="config">The node to save to. Must not be null.</param>
-        public void SaveToConfig(ConfigNode node) {
+        public void Save(ConfigNode node) {
             foreach (var key in keyToBinding.Keys) {
                 var kb = keyToBinding[key];
                 node.AddValue(key.ToString(), kb.GetForConfig());
             }
-        }
-
-        public IEnumerable<KeyBind> Bindings() {
-            return bindings;
         }
     }
 
