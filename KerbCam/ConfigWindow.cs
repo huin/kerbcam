@@ -7,7 +7,7 @@ namespace KerbCam {
                 new Rect(50, 255, 380, 240),
                 new Vector2(380, 240));
         private Vector2 scroll = new Vector2();
-        private KeyBind<BoundKey> captureTarget;
+        private KeyBind captureTarget;
 
         protected override void DrawGUI() {
             GUI.skin = HighLogic.Skin;
@@ -57,7 +57,7 @@ namespace KerbCam {
             }
         }
 
-        private void DoBinding(KeyBind<BoundKey> kb) {
+        private void DoBinding(KeyBind kb) {
             GUILayout.BeginHorizontal();
             GUILayout.Label(kb.description, GUILayout.Width(165));
             string label;
@@ -93,7 +93,7 @@ namespace KerbCam {
             return captureTarget != null;
         }
 
-        private void StartKeyCapture(KeyBind<BoundKey> kb) {
+        private void StartKeyCapture(KeyBind kb) {
             CancelKeyCapture();
             State.keyBindings.captureAnyKey += HandleCapturedKey;
             captureTarget = kb;

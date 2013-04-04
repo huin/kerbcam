@@ -8,23 +8,20 @@ namespace KerbCam {
     public delegate void KeyEvent();
     public delegate void AnyKeyEvent(Event ev);
 
-    class KeyBind<KeyT> {
+    class KeyBind {
         private Event binding;
         private string humanBinding;
         private Event defaultBind;
-        private KeyT key;
         public string description;
         public event KeyEvent ev;
 
-        public KeyBind(KeyT key, string description, KeyCode defaultKeyCode) {
-            this.key = key;
+        public KeyBind(string description, KeyCode defaultKeyCode) {
             this.description = description;
             this.defaultBind = EventHelper.KeyboardUpEvent(defaultKeyCode.ToString());
             SetBinding(defaultBind);
         }
 
-        public KeyBind(KeyT key, string description, Event defaultBind) {
-            this.key = key;
+        public KeyBind(string description, Event defaultBind) {
             this.description = description;
             this.defaultBind = defaultBind;
             SetBinding(defaultBind);
@@ -38,10 +35,6 @@ namespace KerbCam {
                 binding = null;
                 humanBinding = "<unbound>";
             }
-        }
-
-        public KeyT Key {
-            get { return key; }
         }
 
         public string HumanBinding {
@@ -83,10 +76,10 @@ namespace KerbCam {
     class KeyBindings<KeyT> {
         // TODO: Maybe optimize this with a hash of the binding, but be
         // careful about hashes changing when the binding changes.
-        private List<KeyBind<KeyT>> bindings =
-            new List<KeyBind<KeyT>>();
-        private Dictionary<KeyT, KeyBind<KeyT>> keyToBinding =
-            new Dictionary<KeyT, KeyBind<KeyT>>();
+        private List<KeyBind> bindings =
+            new List<KeyBind>();
+        private Dictionary<KeyT, KeyBind> keyToBinding =
+            new Dictionary<KeyT, KeyBind>();
 
         /// <summary>
         /// Captures *all* key events. Will block other key events while at
@@ -94,9 +87,9 @@ namespace KerbCam {
         /// </summary>
         public event AnyKeyEvent captureAnyKey;
 
-        public void AddBinding(KeyBind<KeyT> kb) {
+        public void AddBinding(KeyT key, KeyBind kb) {
             this.bindings.Add(kb);
-            keyToBinding[kb.Key] = kb;
+            keyToBinding[key] = kb;
         }
 
         public void Listen(KeyT key, KeyEvent del) {
@@ -127,8 +120,9 @@ namespace KerbCam {
         /// </summary>
         /// <param name="config">The node to load from. Can be null.</param>
         public void LoadFromConfig(ConfigNode node) {
-            foreach (var kb in bindings) {
-                kb.SetFromConfig(node == null ? null : node.GetValue(kb.Key.ToString()));
+            foreach (var key in keyToBinding.Keys) {
+                var kb = keyToBinding[key];
+                kb.SetFromConfig(node == null ? null : node.GetValue(key.ToString()));
             }
         }
 
@@ -137,12 +131,13 @@ namespace KerbCam {
         /// </summary>
         /// <param name="config">The node to save to. Must not be null.</param>
         public void SaveToConfig(ConfigNode node) {
-            foreach (var kb in bindings) {
-                node.AddValue(kb.Key.ToString(), kb.GetForConfig());
+            foreach (var key in keyToBinding.Keys) {
+                var kb = keyToBinding[key];
+                node.AddValue(key.ToString(), kb.GetForConfig());
             }
         }
 
-        public IEnumerable<KeyBind<KeyT>> Bindings() {
+        public IEnumerable<KeyBind> Bindings() {
             return bindings;
         }
     }
