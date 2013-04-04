@@ -3,6 +3,15 @@ using System.ComponentModel;
 
 namespace KerbCam {
     class ConfigUtil {
+        public static string GetValue(ConfigNode node, string name, string _default) {
+            string valueStr = node.GetValue(name);
+            if (valueStr == null) {
+                return _default;
+            } else {
+                return valueStr;
+            }
+        }
+
         public static void Parse<Type>(ConfigNode node, string name,
             out Type value, Type _default) {
 

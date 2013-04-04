@@ -50,6 +50,7 @@ namespace KerbCam {
             State.keyBindings.Listen(BoundKey.KEY_DEBUG, HandleDebug);
 
             State.LoadConfig();
+            State.LoadPaths();
         }
 
         public void OnGUI() {
@@ -127,11 +128,38 @@ namespace KerbCam {
         }
 
         public static void SaveConfig() {
-            var config = new ConfigNode("kerbcam");
+            var config = new ConfigNode();
             keyBindings.Save(config.AddNode("KEY_BINDINGS"));
             ConfigUtil.Write<bool>(config, "DEV_MODE", developerMode);
             if (!config.Save("kerbcam.cfg")) {
                 Debug.LogError("Could not save to kerbcam.cfg");
+            }
+        }
+
+        public static void LoadPaths() {
+            ConfigNode config;
+            config = ConfigNode.Load("kerbcam-paths.cfg");
+            if (config == null) {
+                Debug.LogWarning("KerbCam could not load paths. This is okay they have not been saved yet.");
+                return;
+            }
+            var newPaths = new List<SimpleCamPath>();
+            foreach (var pathNode in config.GetNodes("PATH")) {
+                var path = new SimpleCamPath();
+                path.Load(pathNode);
+                newPaths.Add(path);
+            }
+            paths = newPaths;
+            SelectedPath = null;
+        }
+
+        public static void SavePaths() {
+            var config = new ConfigNode();
+            foreach (var path in paths) {
+                path.Save(config.AddNode("PATH"));
+            }
+            if (!config.Save("kerbcam-paths.cfg")) {
+                Debug.LogError("Could not save to kerbcam-paths.cfg");
             }
         }
 
@@ -146,9 +174,7 @@ namespace KerbCam {
 
         public static SimpleCamPath NewPath() {
             numCreatedPaths++;
-            var newPath = new SimpleCamPath(
-                "Path #" + numCreatedPaths,
-                FlightCamera.fetch.camera);
+            var newPath = new SimpleCamPath("Path #" + numCreatedPaths);
             paths.Add(newPath);
             return newPath;
         }
@@ -286,6 +312,12 @@ namespace KerbCam {
                 GUILayout.EndHorizontal(); // END left/right panes
 
                 GUILayout.BeginHorizontal(); // BEGIN lower controls
+                if (GUILayout.Button("Save")) {
+                    State.SavePaths();
+                }
+                if (GUILayout.Button("Load")) {
+                    State.LoadPaths();
+                }
                 GUILayout.FlexibleSpace();
                 if (GUILayout.Button("Config...")) {
                     configWindow.ToggleWindow();

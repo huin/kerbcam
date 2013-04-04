@@ -2,9 +2,29 @@ using System;
 using UnityEngine;
 
 namespace KerbCam {
-    public class TransformPoint {
+    public class TransformPoint : IConfigNode {
         public Vector3 position;
         public Quaternion rotation;
+
+        public void Load(ConfigNode node) {
+            string posStr = node.GetValue("POSITION");
+            if (posStr != null) {
+                position = ConfigNode.ParseVector3(posStr);
+            } else {
+                position = Vector3.zero;
+            }
+            string rotStr = node.GetValue("ROTATION");
+            if (rotStr != null) {
+                rotation = ConfigNode.ParseQuaternion(rotStr);
+            } else {
+                rotation = Quaternion.identity;
+            }
+        }
+
+        public void Save(ConfigNode node) {
+            node.AddValue("POSITION", ConfigNode.WriteVector(position));
+            node.AddValue("ROTATION", ConfigNode.WriteQuaternion(rotation));
+        }
     }
 
     // Note that this enum may well go away when decent rotation
@@ -16,7 +36,7 @@ namespace KerbCam {
         Component
     };
 
-    public class TransformPointInterpolator : Interpolator4<TransformPoint>.IValueInterpolator {
+    public class TransformPointInterpolator : Interpolator4<TransformPoint>.IValueInterpolator, IConfigNode {
 
         public RotType rotType = RotType.Slerp;
 
@@ -198,15 +218,22 @@ namespace KerbCam {
 
             return Quaternion.Slerp(k1.value.rotation, k2.value.rotation, t);
         }
+
+        public void Load(ConfigNode node) {
+            ConfigUtil.Parse<RotType>(node, "ROT_TYPE", out rotType, RotType.Slerp);
+        }
+
+        public void Save(ConfigNode node) {
+            ConfigUtil.Write<RotType>(node, "ROT_TYPE", rotType);
+        }
     }
 
 
-    public class SimpleCamPath {
+    public class SimpleCamPath : IConfigNode {
 
         private bool isDrawn = false;
         private GameObject drawnPathObj;
 
-        // Initialized from the constructor.
         private string name;
 
         /// Interpolates for the curve.
@@ -217,7 +244,14 @@ namespace KerbCam {
 
         private PathRunner runner;
 
-        public SimpleCamPath(string name, Camera cameraSettings) {
+        public SimpleCamPath() {
+            this.name = "";
+            interpolator = new TransformPointInterpolator();
+            transformsCurve = new Interpolator4<TransformPoint>(interpolator);
+            runner = PathRunner.Create(this);
+        }
+
+        public SimpleCamPath(string name) {
             this.name = name;
             interpolator = new TransformPointInterpolator();
             transformsCurve = new Interpolator4<TransformPoint>(interpolator);
@@ -364,6 +398,31 @@ namespace KerbCam {
 
             GameObject.Destroy(pathPosObj);
             GameObject.Destroy(pathLookObj);
+        }
+
+        public void Load(ConfigNode node) {
+            name = ConfigUtil.GetValue(node, "NAME", "");
+            interpolator.Load(node);
+            float lastTime = -1f;
+            foreach (var pointNode in node.GetNodes("POINT")) {
+                float param;
+                ConfigUtil.Parse<float>(pointNode, "PARAM", out param, lastTime + 1f);
+                lastTime = param;
+                TransformPoint value = new TransformPoint();
+                value.Load(pointNode);
+                transformsCurve.AddKey(param, value);
+            }
+        }
+
+        public void Save(ConfigNode node) {
+            node.AddValue("NAME", name);
+            interpolator.Save(node);
+            for (int i = 0; i < transformsCurve.Count; i++) {
+                var v = transformsCurve[i];
+                var pointNode = node.AddNode("POINT");
+                pointNode.AddValue("PARAM", v.param);
+                v.value.Save(pointNode);
+            }
         }
     }
 
