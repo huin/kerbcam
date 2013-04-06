@@ -93,6 +93,7 @@ namespace KerbCam {
         private static int numCreatedPaths = 0;
         public static bool developerMode = false;
         public static CameraController camControl;
+        public static ManualCameraControl manCamControl;
         public static MainWindow mainWindow;
 
         public static void Init() {
@@ -113,6 +114,7 @@ namespace KerbCam {
 
             paths = new List<SimpleCamPath>();
             camControl = new CameraController();
+            manCamControl = new ManualCameraControl();
             mainWindow = new MainWindow();
         }
 
@@ -215,7 +217,7 @@ namespace KerbCam {
         private HelpWindow helpWindow;
         private ConfigWindow configWindow;
         private bool cameraControlsOpen = false;
-        private CameraControlGUI cameraGui;
+        private ManualCameraControlGUI cameraGui;
 
         public MainWindow() {
             assembly = Assembly.GetCallingAssembly();
@@ -223,7 +225,7 @@ namespace KerbCam {
                 new Rect(50, 50, 250, 200),
                 new Vector2(GetGuiMinHeight(), GetGuiMinWidth()));
             helpWindow = new HelpWindow(assembly);
-            cameraGui = new CameraControlGUI(State.camControl);
+            cameraGui = new ManualCameraControlGUI();
             configWindow = new ConfigWindow();
 
             State.keyBindings.Listen(BoundKey.KEY_TOGGLE_WINDOW, ToggleWindow);

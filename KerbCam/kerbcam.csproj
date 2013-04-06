@@ -44,11 +44,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.cs" />
-    <Compile Include="CameraControlGUI.cs" />
+    <Compile Include="ManualCameraControlGUI.cs" />
     <Compile Include="CameraController.cs" />
     <Compile Include="ConfigUtil.cs" />
     <Compile Include="ConfigWindow.cs" />
     <Compile Include="KeyBind.cs" />
+    <Compile Include="ManualCameraContol.cs" />
     <Compile Include="PathRunner.cs" />
     <Compile Include="DebugUtil.cs" />
     <Compile Include="QuatUtil.cs" />
