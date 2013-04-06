@@ -58,22 +58,36 @@ namespace KerbCam {
         }
 
         public bool MatchAndFireEvent(Event ev) {
-            if (this.binding != null && this.binding.Equals(ev)) {
-                KeyEvent destEvent;
-                if (ev.type == EventType.KeyUp) {
-                    destEvent = this.keyUp;
-                } else if (ev.type == EventType.KeyDown) {
-                    destEvent = this.keyDown;
-                } else {
-                    return true;
-                }
-                if (destEvent != null) {
-                    destEvent();
-                }
-                ev.Use();
+            if (binding == null) {
+                return false;
+            }
+
+            // Similar to Event.Equals for key events, but ignores
+            // Event.type.
+            bool matches = (
+                binding.keyCode == ev.keyCode &&
+                binding.alt == ev.alt &&
+                binding.control == ev.control &&
+                binding.shift == ev.shift &&
+                binding.command == ev.command);
+
+            if (!matches) {
+                return false;
+            }
+
+            KeyEvent destEvent;
+            if (ev.type == EventType.KeyUp) {
+                destEvent = this.keyUp;
+            } else if (ev.type == EventType.KeyDown) {
+                destEvent = this.keyDown;
+            } else {
                 return true;
             }
-            return false;
+            if (destEvent != null) {
+                destEvent();
+            }
+            ev.Use();
+            return true;
         }
 
         public void SetFromConfig(string evStr) {

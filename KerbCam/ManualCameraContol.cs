@@ -15,26 +15,39 @@ namespace KerbCam {
     }
 
     public abstract class ManualMove {
+        internal delegate void StateChangeHandler(int id, bool newState);
+
         private bool guiState = false;
         private bool keyState = false;
+
+        private int id;
+        private StateChangeHandler stateListener;
+
+        internal void SetIdAndListener(int id, StateChangeHandler stateListener) {
+            this.id = id;
+            this.stateListener = stateListener;
+        }
 
         public bool State {
             get { return guiState || keyState; }
         }
 
         internal void SetGuiState(bool state) {
+            // TODO deal with state change
             guiState = state;
         }
 
         internal void HandleKeyUp() {
+            // TODO deal with state change
             keyState = false;
         }
 
         internal void HandleKeyDown() {
+            // TODO deal with state change
             keyState = true;
         }
 
-        internal abstract void AddMove(Transform translateTrn, float translationFactor,
+        internal abstract void AddMove(Quaternion rot, Transform translateTrn, float translationFactor,
             Transform rotationTrn, float rotationFactor);
     }
 
@@ -48,9 +61,12 @@ namespace KerbCam {
             this.direction = direction;
         }
 
-        internal override void AddMove(Transform translateTrn, float translationFactor,
+        internal override void AddMove(Quaternion rot, Transform translateTrn, float translationFactor,
             Transform rotationTrn, float rotationFactor) {
-            translateTrn.localPosition += direction * translationFactor;
+
+            if (State) {
+                translateTrn.localPosition += rot * direction * translationFactor;
+            }
         }
     }
 
@@ -61,19 +77,20 @@ namespace KerbCam {
         private const float BASE_ROTATE_SPEED = 20f;
 
         internal RotateMove(Vector3 axis) {
-            if (State) {
-                this.axis = axis;
-            }
+            this.axis = axis;
         }
 
-        internal override void AddMove(Transform translateTrn, float translationFactor,
+        internal override void AddMove(Quaternion rot, Transform translateTrn, float translationFactor,
             Transform rotationTrn, float rotationFactor) {
-                Quaternion rot = rotationTrn.localRotation
+
+            if (State) {
+                Quaternion newRot = rotationTrn.localRotation
                     * Quaternion.AngleAxis(
                     BASE_ROTATE_SPEED * rotationFactor, axis);
 
-            QuatUtil.Normalize(ref rot);
-            rotationTrn.localRotation = rot;
+                QuatUtil.Normalize(ref newRot);
+                rotationTrn.localRotation = newRot;
+            }
         }
     }
 
@@ -82,6 +99,12 @@ namespace KerbCam {
 
         public float translateSliderPosition = 0f;
         public float rotateSliderPosition = 0f;
+
+        /// <summary>
+        /// Bitfield of each of the move states. If non-zero, then at least one move
+        /// is active. This can track up to 32 states - we use only 12.
+        /// </summary>
+        private int moveStates = 0;
 
         public ManualMove TrnUp;
         public ManualMove TrnForward;
@@ -117,7 +140,7 @@ namespace KerbCam {
             RotDown = mc.AddRot(Vector3.right, BoundKey.KEY_ROT_DOWN);
 
             return mc;
-       }
+        }
 
         private ManualMove AddTrn(Vector3 trn, BoundKey binding) {
             return AddMove(new TranslateMove(trn), binding);
@@ -128,6 +151,8 @@ namespace KerbCam {
         }
 
         private ManualMove AddMove(ManualMove move, BoundKey binding) {
+            int id = moves.Count;
+            move.SetIdAndListener(id, HandleMoveStateChange);
             moves.Add(move);
             State.keyBindings.ListenKeyUp(binding, move.HandleKeyUp);
             State.keyBindings.ListenKeyDown(binding, move.HandleKeyDown);
@@ -144,9 +169,25 @@ namespace KerbCam {
             enabled = false;
         }
 
-        public void Update() {
-            // TODO find if anything is pressed, somehow
+        public void HandleMoveStateChange(int id, bool newState) {
+            // Update moveStates.
+            int bit = 1 << id;
+            if (newState) {
+                // Set the bit - the move is currently active.
+                moveStates |= bit;
+            } else {
+                // Unset the bit - the move is currently inactive.
+                moveStates &= ~bit;
+            }
 
+            // Cause Update() calls only if something is pressed.
+            enabled = moveStates != 0;
+            if (!enabled) {
+                lastSeenTime = -1f;
+            }
+        }
+
+        public void Update() {
             var cc = State.camControl;
             // Even if the controller is already controlling, take control
             // with this GUI. This stops any path from moving the camera if it
@@ -161,25 +202,15 @@ namespace KerbCam {
             Transform translateTrn = rotationTrn.parent;
 
             Quaternion rot = Quaternion.Inverse(rotationTrn.root.localRotation) * rotationTrn.rotation;
-            Vector3 forward = rot * Vector3.forward;
-            Vector3 up = rot * Vector3.up;
-            Vector3 right = rot * Vector3.right;
 
             float deltaTime = DeltaTime();
             float trnFactor = TranslationFactor(deltaTime);
             float rotFactor = RotationFactor(deltaTime);
 
-            bool haveMoved = false;
             foreach (var move in moves) {
                 if (move.State) {
-                    haveMoved = true;
-                    move.AddMove(translateTrn, trnFactor, rotationTrn, rotFactor);
+                    move.AddMove(rot, translateTrn, trnFactor, rotationTrn, rotFactor);
                 }
-            }
-
-            if (!haveMoved) {
-                lastSeenTime = -1f;
-                return;
             }
         }
 

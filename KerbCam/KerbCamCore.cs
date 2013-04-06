@@ -126,18 +126,18 @@ namespace KerbCam {
                 new KeyBind("pause selected path", false, KeyCode.Home));
 
             // Manual camera control keys.
-            keyBindings.AddBinding(BoundKey.KEY_TRN_UP,new KeyBind("", false, null));
-            keyBindings.AddBinding(BoundKey.KEY_TRN_FORWARD, new KeyBind("", false, null));
-            keyBindings.AddBinding(BoundKey.KEY_TRN_LEFT, new KeyBind("", false, null));
-            keyBindings.AddBinding(BoundKey.KEY_TRN_RIGHT, new KeyBind("", false, null));
-            keyBindings.AddBinding(BoundKey.KEY_TRN_DOWN, new KeyBind("", false, null));
-            keyBindings.AddBinding(BoundKey.KEY_TRN_BACKWARD, new KeyBind("", false, null));
-            keyBindings.AddBinding(BoundKey.KEY_ROT_ROLL_LEFT, new KeyBind("", false, null));
-            keyBindings.AddBinding(BoundKey.KEY_ROT_UP, new KeyBind("", false, null));
-            keyBindings.AddBinding(BoundKey.KEY_ROT_ROLL_RIGHT, new KeyBind("", false, null));
-            keyBindings.AddBinding(BoundKey.KEY_ROT_LEFT, new KeyBind("", false, null));
-            keyBindings.AddBinding(BoundKey.KEY_ROT_RIGHT, new KeyBind("", false, null));
-            keyBindings.AddBinding(BoundKey.KEY_ROT_DOWN, new KeyBind("", false, null));
+            keyBindings.AddBinding(BoundKey.KEY_TRN_UP, new KeyBind("translate up", false, null));
+            keyBindings.AddBinding(BoundKey.KEY_TRN_FORWARD, new KeyBind("translate forward", false, null));
+            keyBindings.AddBinding(BoundKey.KEY_TRN_LEFT, new KeyBind("translate left", false, null));
+            keyBindings.AddBinding(BoundKey.KEY_TRN_RIGHT, new KeyBind("translate right", false, null));
+            keyBindings.AddBinding(BoundKey.KEY_TRN_DOWN, new KeyBind("translate down", false, null));
+            keyBindings.AddBinding(BoundKey.KEY_TRN_BACKWARD, new KeyBind("translate backward", false, null));
+            keyBindings.AddBinding(BoundKey.KEY_ROT_ROLL_LEFT, new KeyBind("roll left", false, null));
+            keyBindings.AddBinding(BoundKey.KEY_ROT_UP, new KeyBind("pan up", false, null));
+            keyBindings.AddBinding(BoundKey.KEY_ROT_ROLL_RIGHT, new KeyBind("roll right", false, null));
+            keyBindings.AddBinding(BoundKey.KEY_ROT_LEFT, new KeyBind("pan left", false, null));
+            keyBindings.AddBinding(BoundKey.KEY_ROT_RIGHT, new KeyBind("pan right", false, null));
+            keyBindings.AddBinding(BoundKey.KEY_ROT_DOWN, new KeyBind("pan down", false, null));
 
             keyBindings.AddBinding(BoundKey.KEY_DEBUG,
                 new KeyBind("log debug data (developer mode only)", false, null));
