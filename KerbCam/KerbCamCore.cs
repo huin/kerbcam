@@ -103,13 +103,13 @@ namespace KerbCam {
 
             keyBindings = new KeyBindings<BoundKey>();
             keyBindings.AddBinding(BoundKey.KEY_PATH_TOGGLE_RUNNING,
-                new KeyBind("play/stop selected path", KeyCode.Insert));
+                new KeyBind("play/stop selected path", false, KeyCode.Insert));
             keyBindings.AddBinding(BoundKey.KEY_PATH_TOGGLE_PAUSE,
-                new KeyBind("pause selected path", KeyCode.Home));
+                new KeyBind("pause selected path", false, KeyCode.Home));
             keyBindings.AddBinding(BoundKey.KEY_TOGGLE_WINDOW,
-                new KeyBind("toggle KerbCam window", KeyCode.F8));
+                new KeyBind("toggle KerbCam window", true, KeyCode.F8));
             keyBindings.AddBinding(BoundKey.KEY_DEBUG,
-                new KeyBind("log debug data (developer mode only)", null));
+                new KeyBind("log debug data (developer mode only)", false, null));
 
             paths = new List<SimpleCamPath>();
             camControl = new CameraController();

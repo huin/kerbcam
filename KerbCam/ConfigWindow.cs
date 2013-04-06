@@ -71,7 +71,7 @@ namespace KerbCam {
                     CancelKeyCapture();
                 }
             }
-            if (GUILayout.Button("clear", C.DeleteButtonStyle)) {
+            if (!kb.IsRequiredBound() && GUILayout.Button("clear", C.DeleteButtonStyle)) {
                 CancelKeyCapture();
                 kb.SetBinding(null);
             }

@@ -13,24 +13,31 @@ namespace KerbCam {
         private Event binding;
         private string humanBinding;
         private Event defaultBind;
+        private bool requiredBound;
         public string description;
         public event KeyEvent ev;
         public event KeyBindingChangedEvent changed;
 
-        public KeyBind(string description, KeyCode defaultKeyCode) {
+        public KeyBind(string description, bool requiredBound, KeyCode defaultKeyCode) {
             this.description = description;
             this.defaultBind = EventHelper.KeyboardUpEvent(defaultKeyCode.ToString());
+            this.requiredBound = requiredBound;
             SetBinding(defaultBind);
         }
 
-        public KeyBind(string description, Event defaultBind) {
+        public KeyBind(string description, bool requiredBound, Event defaultBind) {
             this.description = description;
             this.defaultBind = defaultBind;
+            this.requiredBound = requiredBound;
             SetBinding(defaultBind);
         }
 
         public bool IsBound() {
             return binding != null;
+        }
+
+        public bool IsRequiredBound() {
+            return requiredBound;
         }
 
         public void SetBinding(Event ev) {
