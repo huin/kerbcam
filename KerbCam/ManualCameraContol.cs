@@ -102,25 +102,35 @@ namespace KerbCam {
             var mc = new ManualCameraControl();
             mc.enabled = false;
 
-            TrnUp = mc.AddMove(new TranslateMove(Vector3.up));
-            TrnForward = mc.AddMove(new TranslateMove(Vector3.forward));
-            TrnLeft = mc.AddMove(new TranslateMove(Vector3.left));
-            TrnRight = mc.AddMove(new TranslateMove(Vector3.right));
-            TrnDown = mc.AddMove(new TranslateMove(Vector3.down));
-            TrnBackward = mc.AddMove(new TranslateMove(Vector3.back));
+            TrnUp = mc.AddTrn(Vector3.up, BoundKey.KEY_TRN_UP);
+            TrnForward = mc.AddTrn(Vector3.forward, BoundKey.KEY_TRN_FORWARD);
+            TrnLeft = mc.AddTrn(Vector3.left, BoundKey.KEY_TRN_LEFT);
+            TrnRight = mc.AddTrn(Vector3.right, BoundKey.KEY_TRN_RIGHT);
+            TrnDown = mc.AddTrn(Vector3.down, BoundKey.KEY_TRN_DOWN);
+            TrnBackward = mc.AddTrn(Vector3.back, BoundKey.KEY_TRN_BACKWARD);
 
-            RotRollLeft = mc.AddMove(new RotateMove(Vector3.forward));
-            RotUp = mc.AddMove(new RotateMove(Vector3.left));
-            RotRollRight = mc.AddMove(new RotateMove(Vector3.back));
-            RotLeft = mc.AddMove(new RotateMove(Vector3.down));
-            RotRight = mc.AddMove(new RotateMove(Vector3.up));
-            RotDown = mc.AddMove(new RotateMove(Vector3.right));
+            RotRollLeft = mc.AddRot(Vector3.forward, BoundKey.KEY_ROT_ROLL_LEFT);
+            RotUp = mc.AddRot(Vector3.left, BoundKey.KEY_ROT_UP);
+            RotRollRight = mc.AddRot(Vector3.back, BoundKey.KEY_ROT_ROLL_RIGHT);
+            RotLeft = mc.AddRot(Vector3.down, BoundKey.KEY_ROT_LEFT);
+            RotRight = mc.AddRot(Vector3.up, BoundKey.KEY_ROT_RIGHT);
+            RotDown = mc.AddRot(Vector3.right, BoundKey.KEY_ROT_DOWN);
 
             return mc;
        }
 
-        private ManualMove AddMove(ManualMove move) {
+        private ManualMove AddTrn(Vector3 trn, BoundKey binding) {
+            return AddMove(new TranslateMove(trn), binding);
+        }
+
+        private ManualMove AddRot(Vector3 axis, BoundKey binding) {
+            return AddMove(new RotateMove(axis), binding);
+        }
+
+        private ManualMove AddMove(ManualMove move, BoundKey binding) {
             moves.Add(move);
+            State.keyBindings.ListenKeyUp(binding, move.HandleKeyUp);
+            State.keyBindings.ListenKeyDown(binding, move.HandleKeyDown);
             return move;
         }
 

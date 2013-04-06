@@ -15,7 +15,8 @@ namespace KerbCam {
         private Event defaultBind;
         private bool requiredBound;
         public string description;
-        public event KeyEvent ev;
+        public event KeyEvent keyUp;
+        public event KeyEvent keyDown;
         public event KeyBindingChangedEvent changed;
 
         public KeyBind(string description, bool requiredBound, KeyCode defaultKeyCode) {
@@ -58,8 +59,16 @@ namespace KerbCam {
 
         public bool MatchAndFireEvent(Event ev) {
             if (this.binding != null && this.binding.Equals(ev)) {
-                if (this.ev != null) {
-                    this.ev();
+                KeyEvent destEvent;
+                if (ev.type == EventType.KeyUp) {
+                    destEvent = this.keyUp;
+                } else if (ev.type == EventType.KeyDown) {
+                    destEvent = this.keyDown;
+                } else {
+                    return true;
+                }
+                if (destEvent != null) {
+                    destEvent();
                 }
                 ev.Use();
                 return true;
@@ -113,16 +122,24 @@ namespace KerbCam {
             kb.changed += HandleAnyChanged;
         }
 
-        public void Listen(KeyT key, KeyEvent del) {
-            keyToBinding[key].ev += del;
+        public void ListenKeyUp(KeyT key, KeyEvent del) {
+            keyToBinding[key].keyUp += del;
         }
 
-        public void Unlisten(KeyT key, KeyEvent del) {
-            keyToBinding[key].ev -= del;
+        public void UnlistenKeyUp(KeyT key, KeyEvent del) {
+            keyToBinding[key].keyUp -= del;
+        }
+
+        public void ListenKeyDown(KeyT key, KeyEvent del) {
+            keyToBinding[key].keyDown += del;
+        }
+
+        public void UnlistenKeyDown(KeyT key, KeyEvent del) {
+            keyToBinding[key].keyDown -= del;
         }
 
         public void HandleEvent(Event ev) {
-            if (ev.isKey && ev.type == EventType.KeyUp) {
+            if (ev.isKey && (ev.type == EventType.KeyUp || ev.type == EventType.KeyDown)) {
                 if (captureAnyKey != null) {
                     captureAnyKey(ev);
                     ev.Use();

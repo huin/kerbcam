@@ -47,7 +47,7 @@ namespace KerbCam {
             C.Init();
             State.Init();
 
-            State.keyBindings.Listen(BoundKey.KEY_DEBUG, HandleDebug);
+            State.keyBindings.ListenKeyUp(BoundKey.KEY_DEBUG, HandleDebug);
 
             State.LoadConfig();
             State.LoadPaths();
@@ -76,9 +76,21 @@ namespace KerbCam {
     }
 
     public enum BoundKey {
+        KEY_TOGGLE_WINDOW,
         KEY_PATH_TOGGLE_RUNNING,
         KEY_PATH_TOGGLE_PAUSE,
-        KEY_TOGGLE_WINDOW,
+        KEY_TRN_UP,
+        KEY_TRN_FORWARD,
+        KEY_TRN_LEFT,
+        KEY_TRN_RIGHT,
+        KEY_TRN_DOWN,
+        KEY_TRN_BACKWARD,
+        KEY_ROT_ROLL_LEFT,
+        KEY_ROT_UP,
+        KEY_ROT_ROLL_RIGHT,
+        KEY_ROT_LEFT,
+        KEY_ROT_RIGHT,
+        KEY_ROT_DOWN,
         KEY_DEBUG,
     }
 
@@ -103,12 +115,30 @@ namespace KerbCam {
             initialized = true;
 
             keyBindings = new KeyBindings<BoundKey>();
+
+            keyBindings.AddBinding(BoundKey.KEY_TOGGLE_WINDOW,
+                new KeyBind("toggle KerbCam window", true, KeyCode.F8));
+
+            // Playback controls.
             keyBindings.AddBinding(BoundKey.KEY_PATH_TOGGLE_RUNNING,
                 new KeyBind("play/stop selected path", false, KeyCode.Insert));
             keyBindings.AddBinding(BoundKey.KEY_PATH_TOGGLE_PAUSE,
                 new KeyBind("pause selected path", false, KeyCode.Home));
-            keyBindings.AddBinding(BoundKey.KEY_TOGGLE_WINDOW,
-                new KeyBind("toggle KerbCam window", true, KeyCode.F8));
+
+            // Manual camera control keys.
+            keyBindings.AddBinding(BoundKey.KEY_TRN_UP,new KeyBind("", false, null));
+            keyBindings.AddBinding(BoundKey.KEY_TRN_FORWARD, new KeyBind("", false, null));
+            keyBindings.AddBinding(BoundKey.KEY_TRN_LEFT, new KeyBind("", false, null));
+            keyBindings.AddBinding(BoundKey.KEY_TRN_RIGHT, new KeyBind("", false, null));
+            keyBindings.AddBinding(BoundKey.KEY_TRN_DOWN, new KeyBind("", false, null));
+            keyBindings.AddBinding(BoundKey.KEY_TRN_BACKWARD, new KeyBind("", false, null));
+            keyBindings.AddBinding(BoundKey.KEY_ROT_ROLL_LEFT, new KeyBind("", false, null));
+            keyBindings.AddBinding(BoundKey.KEY_ROT_UP, new KeyBind("", false, null));
+            keyBindings.AddBinding(BoundKey.KEY_ROT_ROLL_RIGHT, new KeyBind("", false, null));
+            keyBindings.AddBinding(BoundKey.KEY_ROT_LEFT, new KeyBind("", false, null));
+            keyBindings.AddBinding(BoundKey.KEY_ROT_RIGHT, new KeyBind("", false, null));
+            keyBindings.AddBinding(BoundKey.KEY_ROT_DOWN, new KeyBind("", false, null));
+
             keyBindings.AddBinding(BoundKey.KEY_DEBUG,
                 new KeyBind("log debug data (developer mode only)", false, null));
 
@@ -228,7 +258,7 @@ namespace KerbCam {
             cameraGui = new ManualCameraControlGUI();
             configWindow = new ConfigWindow();
 
-            State.keyBindings.Listen(BoundKey.KEY_TOGGLE_WINDOW, ToggleWindow);
+            State.keyBindings.ListenKeyUp(BoundKey.KEY_TOGGLE_WINDOW, ToggleWindow);
         }
 
         public float GetGuiMinHeight() {

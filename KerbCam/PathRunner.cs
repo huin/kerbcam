@@ -110,16 +110,16 @@ namespace KerbCam {
         /// Overrides MonoBehaviour.OnEnable.
         /// </summary>
         public void OnEnable() {
-            State.keyBindings.Listen(BoundKey.KEY_PATH_TOGGLE_RUNNING, HandleToggleRun);
-            State.keyBindings.Listen(BoundKey.KEY_PATH_TOGGLE_PAUSE, HandleTogglePause);
+            State.keyBindings.ListenKeyUp(BoundKey.KEY_PATH_TOGGLE_RUNNING, HandleToggleRun);
+            State.keyBindings.ListenKeyUp(BoundKey.KEY_PATH_TOGGLE_PAUSE, HandleTogglePause);
         }
 
         /// <summary>
         /// Overrides MonoBehaviour.OnDisable.
         /// </summary>
         public void OnDisable() {
-            State.keyBindings.Unlisten(BoundKey.KEY_PATH_TOGGLE_RUNNING, HandleToggleRun);
-            State.keyBindings.Unlisten(BoundKey.KEY_PATH_TOGGLE_PAUSE, HandleTogglePause);
+            State.keyBindings.UnlistenKeyUp(BoundKey.KEY_PATH_TOGGLE_RUNNING, HandleToggleRun);
+            State.keyBindings.UnlistenKeyUp(BoundKey.KEY_PATH_TOGGLE_PAUSE, HandleTogglePause);
         }
 
         void CameraController.Client.LoseController() {
