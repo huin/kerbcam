@@ -220,7 +220,7 @@ namespace KerbCam {
         public MainWindow() {
             assembly = Assembly.GetCallingAssembly();
             resizer = new WindowResizer(
-                new Rect(50, 50, 200, 200),
+                new Rect(50, 50, 250, 200),
                 new Vector2(GetGuiMinHeight(), GetGuiMinWidth()));
             helpWindow = new HelpWindow(assembly);
             cameraGui = new CameraControlGUI(State.camControl);
@@ -234,7 +234,7 @@ namespace KerbCam {
         }
 
         public float GetGuiMinWidth() {
-            return 170;
+            return 250;
         }
 
         public override void HideWindow() {
@@ -296,7 +296,8 @@ namespace KerbCam {
 
                 bool pressed = GUILayout.Button(
                     (cameraControlsOpen ? "\u25bd" : "\u25b9")
-                    + " Camera controls");
+                    + " Camera controls",
+                    C.FoldButtonStyle);
                 cameraControlsOpen = cameraControlsOpen ^ pressed;
                 if (cameraControlsOpen) {
                     cameraGui.DoGUI();
@@ -318,13 +319,14 @@ namespace KerbCam {
                 if (GUILayout.Button("Load")) {
                     State.LoadPaths();
                 }
-                GUILayout.FlexibleSpace();
-                if (GUILayout.Button("Config...")) {
+                if (GUILayout.Button("Config\u2026")) {
                     configWindow.ToggleWindow();
                 }
-                if (GUILayout.Button("?")) {
+                GUILayout.FlexibleSpace();
+                if (GUILayout.Button("?", C.WindowButtonStyle)) {
                     helpWindow.ToggleWindow();
                 }
+                DoCloseButton();
                 resizer.HandleResize();
                 GUILayout.EndHorizontal(); // END lower controls
 
@@ -372,14 +374,15 @@ namespace KerbCam {
         private Assembly assembly;
         private WindowResizer resizer;
         private Vector2 helpScroll = new Vector2();
+        // TODO: Update help text for configured keys.
         private string helpText = string.Join("", new string[]{
             "KerbCam is a basic utility to automatically move the flight",
             " camera along a given path.\n",
             "\n",
             "NOTE: at its current stage of development, it is very rough,",
-            " buggy, and feature incomplete. Use at your own risk. It is not",
-            " inconceivable that this can crash your spacecraft or do other",
-            " nasty things.\n",
+            " potentially buggy, and feature incomplete. Use at your own risk.",
+            " It is not inconceivable that this can crash your spacecraft or",
+            " do other nasty things.\n",
             "\n",
             "Note that paths are not saved, and will be lost when KSP",
             " is restarted.",
@@ -408,7 +411,7 @@ namespace KerbCam {
         public HelpWindow(Assembly assembly) {
             this.assembly = assembly;
             resizer = new WindowResizer(
-                new Rect(10, 300, 300, 200),
+                new Rect(330, 50, 300, 300),
                 new Vector2(300, 150));
         }
 
@@ -435,15 +438,13 @@ namespace KerbCam {
 
                 GUILayout.BeginHorizontal();
                 GUILayout.FlexibleSpace();
-                if (GUILayout.Button("Kerbcam on Spaceport")) {
+                if (GUILayout.Button("Kerbcam on Spaceport", C.LinkButtonStyle)) {
                     Application.OpenURL("http://kerbalspaceport.com/kerbcam/");
                 }
-                if (GUILayout.Button("Report issue")) {
+                if (GUILayout.Button("Report issue", C.LinkButtonStyle)) {
                     Application.OpenURL("https://github.com/huin/kerbcam/issues");
                 }
-                if (GUILayout.Button("Close")) {
-                    HideWindow();
-                }
+                DoCloseButton();
                 resizer.HandleResize();
                 GUILayout.EndHorizontal();
 

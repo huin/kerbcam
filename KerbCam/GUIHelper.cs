@@ -3,37 +3,111 @@ using UnityEngine;
 
 namespace KerbCam {
     class C {
+        public const string ChrTimes = "\u00d7";
+
+        private const int WinButtonSize = 25;
+
         private static bool intialized = false;
 
         public static GUIStyle DeleteButtonStyle;
         public static GUIStyle DisabledButtonStyle;
-        public static GUIStyle WindowResizeStyle;
+        public static GUIStyle LinkButtonStyle;
         public static GUIStyle UnpaddedButtonStyle;
+        public static GUIStyle WindowButtonStyle;
+        public static GUIStyle FoldButtonStyle;
 
         public static void Init() {
             if (intialized) {
                 return;
             }
+            intialized = true;
 
             GUISkin skin = HighLogic.Skin;
 
-            Color disabledTextColor = new Color(0.7f, 0.7f, 0.7f);
             DeleteButtonStyle = new GUIStyle(skin.button);
-            DeleteButtonStyle.normal.textColor = new Color(1f, 0f, 0f);
+            DeleteButtonStyle.active.textColor = Color.red;
+            DeleteButtonStyle.focused.textColor = Color.red;
+            DeleteButtonStyle.hover.textColor = Color.red;
+            DeleteButtonStyle.normal.textColor = Color.red;
 
             DisabledButtonStyle = new GUIStyle(skin.button);
+            Color disabledTextColor = new Color(0.7f, 0.7f, 0.7f);
             DisabledButtonStyle.active.textColor = disabledTextColor;
             DisabledButtonStyle.focused.textColor = disabledTextColor;
             DisabledButtonStyle.hover.textColor = disabledTextColor;
             DisabledButtonStyle.normal.textColor = disabledTextColor;
 
+            LinkButtonStyle = new GUIStyle(skin.button);
+            var linkColor = new Color(0.8f, 0.8f, 1f, 1f);
+            LinkButtonStyle.active.textColor = linkColor;
+            LinkButtonStyle.focused.textColor = linkColor;
+            LinkButtonStyle.hover.textColor = linkColor;
+            LinkButtonStyle.normal.textColor = new Color(0f, 0f, 0.7f);
+
             UnpaddedButtonStyle = new GUIStyle(skin.button);
             UnpaddedButtonStyle.margin = new RectOffset(0, 0, 0, 0);
             UnpaddedButtonStyle.padding = new RectOffset(0, 0, 0, 0);
 
-            WindowResizeStyle = new GUIStyle(skin.button);
+            WindowButtonStyle = new GUIStyle(skin.button);
+            WindowButtonStyle.fixedHeight = WinButtonSize;
+            WindowButtonStyle.fixedWidth = WinButtonSize;
+            WindowButtonStyle.alignment = TextAnchor.LowerCenter;
+            WindowButtonStyle.border = new RectOffset(1, 1, 1 ,1);
+            WindowButtonStyle.margin = new RectOffset(2, 2, 8, 2);
+            WindowButtonStyle.padding = new RectOffset(2, 2, 2, 2);
+            var border = new Color(1f, 1f, 1f, 0.7f);
+            WindowButtonStyle.active.background = MakeWindowButtonTexture(
+                border, new Color(1f, 1f, 1f, 0.3f));
+            WindowButtonStyle.focused.background = MakeWindowButtonTexture(
+                border, new Color(1f, 1f, 1f, 0.2f));
+            WindowButtonStyle.hover.background = MakeWindowButtonTexture(
+                border, new Color(1f, 1f, 1f, 0.2f));
+            WindowButtonStyle.normal.background = MakeWindowButtonTexture(
+                border, new Color(1f, 1f, 1f, 0.1f));
 
-            intialized = true;
+            FoldButtonStyle = new GUIStyle(skin.button);
+            FoldButtonStyle.alignment = TextAnchor.MiddleLeft;
+            FoldButtonStyle.border = new RectOffset(0, 0, 0, 0);
+            FoldButtonStyle.active.background = MakeConstantTexture(
+                new Color(1f, 1f, 1f, 0.2f));
+            FoldButtonStyle.focused.background = MakeConstantTexture(
+                new Color(1f, 1f, 1f, 0.2f));
+            FoldButtonStyle.hover.background = MakeConstantTexture(
+                new Color(1f, 1f, 1f, 0.2f));
+            FoldButtonStyle.normal.background = MakeConstantTexture(
+                Color.clear);
+        }
+
+        private static Texture2D MakeConstantTexture(Color fill) {
+            const int size = 20;
+            Texture2D txt = new Texture2D(size, size);
+            for (int row = 0; row < size; row++) {
+                for (int col = 0; col < size; col++) {
+                    txt.SetPixel(col, row, fill);
+                }
+            }
+            txt.Apply();
+            txt.Compress(false);
+            return txt;
+        }
+
+        private static Texture2D MakeWindowButtonTexture(Color border, Color fill) {
+            const int size = WinButtonSize;
+            Texture2D txt = new Texture2D(size, size);
+            for (int i = 0; i < size; i++) {
+                txt.SetPixel(i, 0, border);
+                txt.SetPixel(i, size - 1, border);
+                txt.SetPixel(0, i, border);
+                txt.SetPixel(size - 1, i, border);
+            }
+            for (int row = 1; row < size - 1; row++) {
+                for (int col = 1; col < size - 1; col++) {
+                    txt.SetPixel(col, row, fill);
+                }
+            }
+            txt.Apply();
+            txt.Compress(false);
+            return txt;
         }
     }
 
@@ -91,7 +165,7 @@ namespace KerbCam {
         public void HandleResize() {
             Vector2 mouse = GUIUtility.ScreenToGUIPoint(new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y));
 
-            Rect r = GUILayoutUtility.GetRect(gcDrag, C.WindowResizeStyle);
+            Rect r = GUILayoutUtility.GetRect(gcDrag, C.WindowButtonStyle);
 
             if (Event.current.type == EventType.mouseDown && r.Contains(mouse)) {
                 isResizing = true;
@@ -109,7 +183,7 @@ namespace KerbCam {
                 position.yMax = Mathf.Min(Screen.height, position.yMax);  // modifying yMax affects height, not y
             }
 
-            GUI.Button(r, gcDrag, C.WindowResizeStyle);
+            GUI.Button(r, gcDrag, C.WindowButtonStyle);
         }
     }
 
@@ -147,6 +221,12 @@ namespace KerbCam {
                 DrawGUI();
             } catch (Exception e) {
                 DebugUtil.LogException(e);
+            }
+        }
+
+        protected void DoCloseButton() {
+            if (GUILayout.Button(C.ChrTimes, C.WindowButtonStyle)) {
+                HideWindow();
             }
         }
 

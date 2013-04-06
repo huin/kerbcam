@@ -44,9 +44,7 @@ namespace KerbCam {
                     State.LoadConfig();
                 }
                 GUILayout.FlexibleSpace();
-                if (GUILayout.Button("Close")) {
-                    HideWindow();
-                }
+                DoCloseButton();
                 resizer.HandleResize();
                 GUILayout.EndHorizontal(); // END lower controls
                 GUILayout.EndVertical(); // END outer container
