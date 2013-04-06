@@ -7,13 +7,15 @@ using UnityEngine;
 namespace KerbCam {
     public delegate void KeyEvent();
     public delegate void AnyKeyEvent(Event ev);
+    public delegate void KeyBindingChangedEvent();
 
-    class KeyBind {
+    public class KeyBind {
         private Event binding;
         private string humanBinding;
         private Event defaultBind;
         public string description;
         public event KeyEvent ev;
+        public event KeyBindingChangedEvent changed;
 
         public KeyBind(string description, KeyCode defaultKeyCode) {
             this.description = description;
@@ -27,6 +29,10 @@ namespace KerbCam {
             SetBinding(defaultBind);
         }
 
+        public bool IsBound() {
+            return binding != null;
+        }
+
         public void SetBinding(Event ev) {
             if (ev != null) {
                 binding = new Event(ev);
@@ -35,6 +41,8 @@ namespace KerbCam {
                 binding = null;
                 humanBinding = "<unbound>";
             }
+            if (changed != null) 
+                changed();
         }
 
         public string HumanBinding {
@@ -73,7 +81,7 @@ namespace KerbCam {
         }
     }
 
-    class KeyBindings<KeyT> : IConfigNode {
+    public class KeyBindings<KeyT> : IConfigNode {
         // TODO: Maybe optimize this with a hash of the binding, but be
         // careful about hashes changing when the binding changes.
         private List<KeyBind> bindings =
@@ -87,9 +95,15 @@ namespace KerbCam {
         /// </summary>
         public event AnyKeyEvent captureAnyKey;
 
+        /// <summary>
+        /// Any key binding was changed.
+        /// </summary>
+        public event KeyBindingChangedEvent anyChanged;
+
         public void AddBinding(KeyT key, KeyBind kb) {
             this.bindings.Add(kb);
             keyToBinding[key] = kb;
+            kb.changed += HandleAnyChanged;
         }
 
         public void Listen(KeyT key, KeyEvent del) {
@@ -130,6 +144,12 @@ namespace KerbCam {
             foreach (var key in keyToBinding.Keys) {
                 var kb = keyToBinding[key];
                 node.AddValue(key.ToString(), kb.GetForConfig());
+            }
+        }
+
+        private void HandleAnyChanged() {
+            if (anyChanged != null) {
+                anyChanged();
             }
         }
     }

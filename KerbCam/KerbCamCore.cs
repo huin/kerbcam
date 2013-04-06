@@ -109,7 +109,7 @@ namespace KerbCam {
             keyBindings.AddBinding(BoundKey.KEY_TOGGLE_WINDOW,
                 new KeyBind("toggle KerbCam window", KeyCode.F8));
             keyBindings.AddBinding(BoundKey.KEY_DEBUG,
-                new KeyBind("log debug data (developer mode only)", KeyCode.F7));
+                new KeyBind("log debug data (developer mode only)", null));
 
             paths = new List<SimpleCamPath>();
             camControl = new CameraController();
@@ -374,8 +374,7 @@ namespace KerbCam {
         private Assembly assembly;
         private WindowResizer resizer;
         private Vector2 helpScroll = new Vector2();
-        // TODO: Update help text for configured keys.
-        private string helpText = string.Join("", new string[]{
+        private static string origHelpText = string.Join("", new string[]{
             "KerbCam is a basic utility to automatically move the flight",
             " camera along a given path.\n",
             "\n",
@@ -387,10 +386,8 @@ namespace KerbCam {
             "Note that paths are not saved, and will be lost when KSP",
             " is restarted.",
             "\n",
-            "Keys:\n",
-            "* [Insert] Toggle playback of the currently selected path.\n",
-            "* [Home] Toggle pause of playback.\n",
-            "* [F8] Toggle the KerbCam window.\n",
+            "Keys: (changeable in Config window)\n",
+            "{0}",
             "\n",
             "Create a new path, then add keys to it by positioning your view",
             " and add the key with the \"New key\" button. Existing points",
@@ -407,12 +404,15 @@ namespace KerbCam {
             "Source is hosted at https://github.com/huin/kerbcam under the",
             " BSD license."}
         );
+        private string helpText;
 
         public HelpWindow(Assembly assembly) {
             this.assembly = assembly;
             resizer = new WindowResizer(
                 new Rect(330, 50, 300, 300),
                 new Vector2(300, 150));
+            State.keyBindings.anyChanged += UpdateHelpText;
+            UpdateHelpText();
         }
 
         protected override void DrawGUI() {
@@ -454,6 +454,24 @@ namespace KerbCam {
             } catch (Exception e) {
                 DebugUtil.LogException(e);
             }
+        }
+
+        private void UpdateHelpText() {
+            var fmtBindingParts = new List<string>();
+            foreach (var kb in State.keyBindings.Bindings()) {
+                if (kb.IsBound()) {
+                    fmtBindingParts.Add(string.Format("* {0} [{1}]\n",
+                        kb.description, kb.HumanBinding));
+                }
+            }
+            string fmtBindings;
+            if (fmtBindingParts.Count > 0) {
+                fmtBindings = string.Join("", fmtBindingParts.ToArray());
+            } else {
+                fmtBindings = "<nothing bound>";
+            }
+            helpText = string.Format(origHelpText,
+                fmtBindings);
         }
     }
 }
