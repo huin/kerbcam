@@ -9,10 +9,124 @@ namespace KerbCam {
     public delegate void AnyKeyEvent(Event ev);
     public delegate void KeyBindingChangedEvent();
 
+    public struct ExtEvent {
+        private Event ev;
+
+        /// <summary>
+        /// Acts as the numeric field on ev, as we can't set that
+        /// field.
+        /// </summary>
+        public bool numeric;
+
+        public ExtEvent(KeyCode keyCode, bool numeric) {
+            this.ev = Event.KeyboardEvent(keyCode.ToString());
+            this.numeric = numeric;
+        }
+
+        public ExtEvent(Event ev) {
+            if (ev != null) {
+                this.ev = new Event(ev);
+                this.numeric = ev.numeric;
+            } else {
+                this.ev = null;
+                this.numeric = false;
+            }
+        }
+
+        public ExtEvent(Event ev, bool numeric) {
+            if (ev != null) {
+                this.ev = new Event(ev);
+            } else {
+                this.ev = null;
+            }
+            this.numeric = numeric;
+        }
+
+        public bool IsBound() {
+            return ev != null;
+        }
+
+        public void Clear() {
+            ev = null;
+            numeric = false;
+        }
+
+        public bool Matches(Event ev) {
+            return (
+                this.ev != null &&
+                this.ev.keyCode == ev.keyCode &&
+                this.ev.alt == ev.alt &&
+                this.ev.control == ev.control &&
+                this.ev.shift == ev.shift &&
+                this.ev.command == ev.command);
+        }
+
+        /// <summary>
+        /// Returns the event in a parseable form.
+        /// </summary>
+        /// <returns>The event as a string.</returns>
+        public override string ToString() {
+            if (ev == null) {
+                return "";
+            }
+
+            StringBuilder s = new StringBuilder(10);
+
+            if (ev.numeric) s.Append("*");
+            var mods = ev.modifiers;
+            if ((mods & EventModifiers.Alt) != 0) s.Append("&");
+            if ((mods & EventModifiers.Control) != 0) s.Append("^");
+            if ((mods & EventModifiers.Command) != 0) s.Append("%");
+            if ((mods & EventModifiers.Shift) != 0) s.Append("#");
+            s.Append(ev.keyCode.ToString());
+
+            return s.ToString();
+        }
+
+        public static ExtEvent Parse(string evStr) {
+            if (evStr == null || evStr == "") {
+                return new ExtEvent(null, false);
+            }
+
+            bool numeric = evStr.StartsWith("*");
+            if (numeric) {
+                evStr = evStr.Substring(1);
+            }
+            Event ev = Event.KeyboardEvent(evStr);
+            return new ExtEvent(ev, numeric);
+        }
+
+        /// <summary>
+        /// Creates a readable string for the event.
+        /// </summary>
+        /// <returns>The description string.</returns>
+        public string ToHumanString() {
+            if (ev == null) {
+                return "<unset>";
+            }
+
+            List<string> p = new List<string>(5);
+            var mods = ev.modifiers;
+            if ((mods & EventModifiers.Alt) != 0) p.Add("Alt");
+            if ((mods & EventModifiers.Control) != 0) p.Add("Ctrl");
+            if ((mods & EventModifiers.Command) != 0) p.Add("Cmd");
+            if ((mods & EventModifiers.Shift) != 0) p.Add("Shift");
+            string keyDesc;
+            if (numeric) {
+                keyDesc = "(numpad)" + ev.keyCode.ToString();
+            } else {
+                keyDesc = ev.keyCode.ToString();
+            }
+            p.Add(keyDesc);
+
+            return string.Join("+", p.ToArray());
+        }
+    }
+
     public class KeyBind {
-        private Event binding;
+        private ExtEvent binding;
+        private ExtEvent defaultBind;
         private string humanBinding;
-        private Event defaultBind;
         private bool requiredBound;
         public string description;
         public event KeyEvent keyUp;
@@ -21,36 +135,36 @@ namespace KerbCam {
 
         public KeyBind(string description, bool requiredBound, KeyCode defaultKeyCode) {
             this.description = description;
-            this.defaultBind = EventHelper.KeyboardUpEvent(defaultKeyCode.ToString());
+            this.defaultBind = new ExtEvent(defaultKeyCode, false);
             this.requiredBound = requiredBound;
             SetBinding(defaultBind);
         }
 
-        public KeyBind(string description, bool requiredBound, Event defaultBind) {
+        public KeyBind(string description) {
             this.description = description;
-            this.defaultBind = defaultBind;
-            this.requiredBound = requiredBound;
+            this.defaultBind = new ExtEvent();
+            this.requiredBound = false;
             SetBinding(defaultBind);
         }
 
         public bool IsBound() {
-            return binding != null;
+            return binding.IsBound();
         }
 
         public bool IsRequiredBound() {
             return requiredBound;
         }
 
-        public void SetBinding(Event ev) {
-            if (ev != null) {
-                binding = new Event(ev);
-                humanBinding = EventHelper.KeyboardEventHumanString(binding);
-            } else {
-                binding = null;
-                humanBinding = "<unbound>";
-            }
-            if (changed != null) 
+        public void SetBinding(ExtEvent ev) {
+            binding = ev;
+            humanBinding = ev.ToHumanString();
+            if (changed != null) {
                 changed();
+            }
+        }
+
+        public void SetBinding(Event ev) {
+            SetBinding(new ExtEvent(ev));
         }
 
         public string HumanBinding {
@@ -58,20 +172,7 @@ namespace KerbCam {
         }
 
         public bool MatchAndFireEvent(Event ev) {
-            if (binding == null) {
-                return false;
-            }
-
-            // Similar to Event.Equals for key events, but ignores
-            // Event.type.
-            bool matches = (
-                binding.keyCode == ev.keyCode &&
-                binding.alt == ev.alt &&
-                binding.control == ev.control &&
-                binding.shift == ev.shift &&
-                binding.command == ev.command);
-
-            if (!matches) {
+            if (!binding.Matches(ev)) {
                 return false;
             }
 
@@ -91,23 +192,11 @@ namespace KerbCam {
         }
 
         public void SetFromConfig(string evStr) {
-            if (evStr == null) {
-                SetBinding(defaultBind);
-            } else if (evStr == "") {
-                // Explicitly unset.
-                SetBinding(null);
-            } else {
-                // Configured.
-                SetBinding(EventHelper.KeyboardUpEvent(evStr));
-            }
+            SetBinding(ExtEvent.Parse(evStr));
         }
 
         public string GetForConfig() {
-            if (binding == null) {
-                return "";
-            } else {
-                return EventHelper.KeyboardEventString(binding);
-            }
+            return binding.ToString();
         }
     }
 
@@ -155,8 +244,10 @@ namespace KerbCam {
         public void HandleEvent(Event ev) {
             if (ev.isKey && (ev.type == EventType.KeyUp || ev.type == EventType.KeyDown)) {
                 if (captureAnyKey != null) {
-                    captureAnyKey(ev);
-                    ev.Use();
+                    if (ev.type == EventType.KeyUp) {
+                        captureAnyKey(ev);
+                        ev.Use();
+                    }
                 } else {
                     foreach (var kb in bindings) {
                         if (kb.MatchAndFireEvent(ev)) {
@@ -189,56 +280,6 @@ namespace KerbCam {
             if (anyChanged != null) {
                 anyChanged();
             }
-        }
-    }
-
-    public class EventHelper {
-        /// <summary>
-        /// Reverse operation of Event.KeyboardEvent/KeyboardUpEvent.
-        /// </summary>
-        /// <param name="ev">The event to turn into a string.</param>
-        /// <returns>The event as a string.</returns>
-        public static string KeyboardEventString(Event ev) {
-            if (!ev.isKey) {
-                throw new Exception("Not a keyboard event: " + ev.ToString());
-            }
-
-            StringBuilder s = new StringBuilder(10);
-            var mods = ev.modifiers;
-            if ((mods & EventModifiers.Alt) != 0) s.Append("&");
-            if ((mods & EventModifiers.Control) != 0) s.Append("^");
-            if ((mods & EventModifiers.Command) != 0) s.Append("%");
-            if ((mods & EventModifiers.Shift) != 0) s.Append("#");
-            s.Append(ev.keyCode.ToString());
-
-            return s.ToString();
-        }
-
-        public static Event KeyboardUpEvent(string evStr) {
-            Event ev = Event.KeyboardEvent(evStr);
-            ev.type = EventType.KeyUp;
-            return ev;
-        }
-
-        /// <summary>
-        /// Creates a readable string for the event.
-        /// </summary>
-        /// <param name="ev">The event to turn into a descriptive string.</param>
-        /// <returns>The description string.</returns>
-        public static string KeyboardEventHumanString(Event ev) {
-            if (!ev.isKey) {
-                throw new Exception("Not a keyboard event: " + ev.ToString());
-            }
-
-            List<string> p = new List<string>(5);
-            var mods = ev.modifiers;
-            if ((mods & EventModifiers.Alt) != 0) p.Add("Alt");
-            if ((mods & EventModifiers.Control) != 0) p.Add("Ctrl");
-            if ((mods & EventModifiers.Command) != 0) p.Add("Cmd");
-            if ((mods & EventModifiers.Shift) != 0) p.Add("Shift");
-            p.Add(ev.keyCode.ToString());
-
-            return string.Join("+", p.ToArray());
         }
     }
 }

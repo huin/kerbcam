@@ -121,23 +121,24 @@ namespace KerbCam {
 
         private List<ManualMove> moves = new List<ManualMove>(12);
 
-        public ManualCameraControl Create() {
-            var mc = new ManualCameraControl();
+        public static ManualCameraControl Create() {
+            var gameObject = new GameObject();
+            var mc = gameObject.AddComponent<ManualCameraControl>();
             mc.enabled = false;
 
-            TrnUp = mc.AddTrn(Vector3.up, BoundKey.KEY_TRN_UP);
-            TrnForward = mc.AddTrn(Vector3.forward, BoundKey.KEY_TRN_FORWARD);
-            TrnLeft = mc.AddTrn(Vector3.left, BoundKey.KEY_TRN_LEFT);
-            TrnRight = mc.AddTrn(Vector3.right, BoundKey.KEY_TRN_RIGHT);
-            TrnDown = mc.AddTrn(Vector3.down, BoundKey.KEY_TRN_DOWN);
-            TrnBackward = mc.AddTrn(Vector3.back, BoundKey.KEY_TRN_BACKWARD);
+            mc.TrnUp = mc.AddTrn(Vector3.up, BoundKey.KEY_TRN_UP);
+            mc.TrnForward = mc.AddTrn(Vector3.forward, BoundKey.KEY_TRN_FORWARD);
+            mc.TrnLeft = mc.AddTrn(Vector3.left, BoundKey.KEY_TRN_LEFT);
+            mc.TrnRight = mc.AddTrn(Vector3.right, BoundKey.KEY_TRN_RIGHT);
+            mc.TrnDown = mc.AddTrn(Vector3.down, BoundKey.KEY_TRN_DOWN);
+            mc.TrnBackward = mc.AddTrn(Vector3.back, BoundKey.KEY_TRN_BACKWARD);
 
-            RotRollLeft = mc.AddRot(Vector3.forward, BoundKey.KEY_ROT_ROLL_LEFT);
-            RotUp = mc.AddRot(Vector3.left, BoundKey.KEY_ROT_UP);
-            RotRollRight = mc.AddRot(Vector3.back, BoundKey.KEY_ROT_ROLL_RIGHT);
-            RotLeft = mc.AddRot(Vector3.down, BoundKey.KEY_ROT_LEFT);
-            RotRight = mc.AddRot(Vector3.up, BoundKey.KEY_ROT_RIGHT);
-            RotDown = mc.AddRot(Vector3.right, BoundKey.KEY_ROT_DOWN);
+            mc.RotRollLeft = mc.AddRot(Vector3.forward, BoundKey.KEY_ROT_ROLL_LEFT);
+            mc.RotUp = mc.AddRot(Vector3.left, BoundKey.KEY_ROT_UP);
+            mc.RotRollRight = mc.AddRot(Vector3.back, BoundKey.KEY_ROT_ROLL_RIGHT);
+            mc.RotLeft = mc.AddRot(Vector3.down, BoundKey.KEY_ROT_LEFT);
+            mc.RotRight = mc.AddRot(Vector3.up, BoundKey.KEY_ROT_RIGHT);
+            mc.RotDown = mc.AddRot(Vector3.right, BoundKey.KEY_ROT_DOWN);
 
             return mc;
         }

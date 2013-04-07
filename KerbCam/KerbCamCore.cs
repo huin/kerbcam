@@ -126,25 +126,25 @@ namespace KerbCam {
                 new KeyBind("pause selected path", false, KeyCode.Home));
 
             // Manual camera control keys.
-            keyBindings.AddBinding(BoundKey.KEY_TRN_UP, new KeyBind("translate up", false, null));
-            keyBindings.AddBinding(BoundKey.KEY_TRN_FORWARD, new KeyBind("translate forward", false, null));
-            keyBindings.AddBinding(BoundKey.KEY_TRN_LEFT, new KeyBind("translate left", false, null));
-            keyBindings.AddBinding(BoundKey.KEY_TRN_RIGHT, new KeyBind("translate right", false, null));
-            keyBindings.AddBinding(BoundKey.KEY_TRN_DOWN, new KeyBind("translate down", false, null));
-            keyBindings.AddBinding(BoundKey.KEY_TRN_BACKWARD, new KeyBind("translate backward", false, null));
-            keyBindings.AddBinding(BoundKey.KEY_ROT_ROLL_LEFT, new KeyBind("roll left", false, null));
-            keyBindings.AddBinding(BoundKey.KEY_ROT_UP, new KeyBind("pan up", false, null));
-            keyBindings.AddBinding(BoundKey.KEY_ROT_ROLL_RIGHT, new KeyBind("roll right", false, null));
-            keyBindings.AddBinding(BoundKey.KEY_ROT_LEFT, new KeyBind("pan left", false, null));
-            keyBindings.AddBinding(BoundKey.KEY_ROT_RIGHT, new KeyBind("pan right", false, null));
-            keyBindings.AddBinding(BoundKey.KEY_ROT_DOWN, new KeyBind("pan down", false, null));
+            keyBindings.AddBinding(BoundKey.KEY_TRN_UP, new KeyBind("translate up"));
+            keyBindings.AddBinding(BoundKey.KEY_TRN_FORWARD, new KeyBind("translate forward"));
+            keyBindings.AddBinding(BoundKey.KEY_TRN_LEFT, new KeyBind("translate left"));
+            keyBindings.AddBinding(BoundKey.KEY_TRN_RIGHT, new KeyBind("translate right"));
+            keyBindings.AddBinding(BoundKey.KEY_TRN_DOWN, new KeyBind("translate down"));
+            keyBindings.AddBinding(BoundKey.KEY_TRN_BACKWARD, new KeyBind("translate backward"));
+            keyBindings.AddBinding(BoundKey.KEY_ROT_ROLL_LEFT, new KeyBind("roll left"));
+            keyBindings.AddBinding(BoundKey.KEY_ROT_UP, new KeyBind("pan up"));
+            keyBindings.AddBinding(BoundKey.KEY_ROT_ROLL_RIGHT, new KeyBind("roll right"));
+            keyBindings.AddBinding(BoundKey.KEY_ROT_LEFT, new KeyBind("pan left"));
+            keyBindings.AddBinding(BoundKey.KEY_ROT_RIGHT, new KeyBind("pan right"));
+            keyBindings.AddBinding(BoundKey.KEY_ROT_DOWN, new KeyBind("pan down"));
 
             keyBindings.AddBinding(BoundKey.KEY_DEBUG,
-                new KeyBind("log debug data (developer mode only)", false, null));
+                new KeyBind("log debug data (developer mode only)"));
 
             paths = new List<SimpleCamPath>();
             camControl = new CameraController();
-            manCamControl = new ManualCameraControl();
+            manCamControl = ManualCameraControl.Create();
             mainWindow = new MainWindow();
         }
 
@@ -415,8 +415,7 @@ namespace KerbCam {
             " It is not inconceivable that this can crash your spacecraft or",
             " do other nasty things.\n",
             "\n",
-            "Note that paths are not saved, and will be lost when KSP",
-            " is restarted.",
+            "Paths are saved when the save button is pressed.",
             "\n",
             "Keys: (changeable in Config window)\n",
             "{0}",
