@@ -39,69 +39,47 @@ namespace KerbCam {
 
             LinkButtonStyle = new GUIStyle(skin.button);
             var linkColor = new Color(0.8f, 0.8f, 1f, 1f);
-            LinkButtonStyle.active.textColor = linkColor;
-            LinkButtonStyle.focused.textColor = linkColor;
-            LinkButtonStyle.hover.textColor = linkColor;
+            LinkButtonStyle.active.textColor = Color.blue;
+            LinkButtonStyle.focused.textColor = Color.blue;
+            LinkButtonStyle.hover.textColor = Color.blue;
             LinkButtonStyle.normal.textColor = new Color(0f, 0f, 0.7f);
 
             UnpaddedButtonStyle = new GUIStyle(skin.button);
             UnpaddedButtonStyle.margin = new RectOffset(0, 0, 0, 0);
             UnpaddedButtonStyle.padding = new RectOffset(0, 0, 0, 0);
 
+            var activeTxt = MakeConstantTexture(new Color(1f, 1f, 1f, 0.3f));
+            var litTxt = MakeConstantTexture(new Color(1f, 1f, 1f, 0.2f));
+            var normalTxt = MakeConstantTexture(new Color(1f, 1f, 1f, 0.1f));
+            var clearTxt = MakeConstantTexture(Color.clear);
+
             WindowButtonStyle = new GUIStyle(skin.button);
             WindowButtonStyle.fixedHeight = WinButtonSize;
             WindowButtonStyle.fixedWidth = WinButtonSize;
             WindowButtonStyle.alignment = TextAnchor.LowerCenter;
-            WindowButtonStyle.border = new RectOffset(1, 1, 1 ,1);
+            WindowButtonStyle.border = new RectOffset(1, 1, 1, 1);
             WindowButtonStyle.margin = new RectOffset(2, 2, 8, 2);
             WindowButtonStyle.padding = new RectOffset(2, 2, 2, 2);
             var border = new Color(1f, 1f, 1f, 0.7f);
-            WindowButtonStyle.active.background = MakeWindowButtonTexture(
-                border, new Color(1f, 1f, 1f, 0.3f));
-            WindowButtonStyle.focused.background = MakeWindowButtonTexture(
-                border, new Color(1f, 1f, 1f, 0.2f));
-            WindowButtonStyle.hover.background = MakeWindowButtonTexture(
-                border, new Color(1f, 1f, 1f, 0.2f));
-            WindowButtonStyle.normal.background = MakeWindowButtonTexture(
-                border, new Color(1f, 1f, 1f, 0.1f));
+            WindowButtonStyle.active.background = activeTxt;
+            WindowButtonStyle.focused.background = litTxt;
+            WindowButtonStyle.hover.background = litTxt;
+            WindowButtonStyle.normal.background = normalTxt;
 
             FoldButtonStyle = new GUIStyle(skin.button);
             FoldButtonStyle.alignment = TextAnchor.MiddleLeft;
             FoldButtonStyle.border = new RectOffset(0, 0, 0, 0);
-            FoldButtonStyle.active.background = MakeConstantTexture(
-                new Color(1f, 1f, 1f, 0.2f));
-            FoldButtonStyle.focused.background = MakeConstantTexture(
-                new Color(1f, 1f, 1f, 0.2f));
-            FoldButtonStyle.hover.background = MakeConstantTexture(
-                new Color(1f, 1f, 1f, 0.2f));
-            FoldButtonStyle.normal.background = MakeConstantTexture(
-                Color.clear);
+            FoldButtonStyle.active.background = activeTxt;
+            FoldButtonStyle.focused.background = litTxt;
+            FoldButtonStyle.hover.background = litTxt;
+            FoldButtonStyle.normal.background = clearTxt;
         }
 
         private static Texture2D MakeConstantTexture(Color fill) {
-            const int size = 20;
+            const int size = 32;
             Texture2D txt = new Texture2D(size, size);
             for (int row = 0; row < size; row++) {
                 for (int col = 0; col < size; col++) {
-                    txt.SetPixel(col, row, fill);
-                }
-            }
-            txt.Apply();
-            txt.Compress(false);
-            return txt;
-        }
-
-        private static Texture2D MakeWindowButtonTexture(Color border, Color fill) {
-            const int size = WinButtonSize;
-            Texture2D txt = new Texture2D(size, size);
-            for (int i = 0; i < size; i++) {
-                txt.SetPixel(i, 0, border);
-                txt.SetPixel(i, size - 1, border);
-                txt.SetPixel(0, i, border);
-                txt.SetPixel(size - 1, i, border);
-            }
-            for (int row = 1; row < size - 1; row++) {
-                for (int col = 1; col < size - 1; col++) {
                     txt.SetPixel(col, row, fill);
                 }
             }
