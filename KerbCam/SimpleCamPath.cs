@@ -98,7 +98,7 @@ namespace KerbCam {
                     k1.param, k2.param, k3.param,
                     k1.value.timescale, k2.value.timescale, k3.value.timescale) * dp;
             }
-            return SplineUtil.CubicHermite(t, k1.value.position.x, m0, k2.value.position.x, m1);
+            return Math.Max(0f, SplineUtil.CubicHermite(t, k1.value.timescale, m0, k2.value.timescale, m1));
         }
 
         private static Vector3 EvaluatePosition(
@@ -262,6 +262,7 @@ namespace KerbCam {
         private GameObject drawnPathObj;
 
         private string name;
+        public bool ScaleTime = false;
 
         /// Interpolates for the curve.
         private TransformPointInterpolator interpolator;
@@ -343,7 +344,7 @@ namespace KerbCam {
 
         public TransformPoint this[int index] {
             get { return transformsCurve[index]; }
-            set { transformsCurve[index] = value; }
+            set { transformsCurve[index] = value; UpdateDrawn(); }
         }
 
         public float TimeAt(int index) {
@@ -437,6 +438,7 @@ namespace KerbCam {
 
         public void Load(ConfigNode node) {
             name = ConfigUtil.GetValue(node, "NAME", "");
+            ConfigUtil.Parse<bool>(node, "SCALE_TIME", out ScaleTime, false);
             interpolator.Load(node);
             float lastTime = -1f;
             foreach (var pointNode in node.GetNodes("POINT")) {
@@ -451,6 +453,7 @@ namespace KerbCam {
 
         public void Save(ConfigNode node) {
             node.AddValue("NAME", name);
+            ConfigUtil.Write<bool>(node, "SCALE_TIME", ScaleTime);
             interpolator.Save(node);
             for (int i = 0; i < transformsCurve.Count; i++) {
                 var v = transformsCurve[i];
@@ -568,6 +571,8 @@ namespace KerbCam {
             if (path.IsDrawn != shouldDraw) {
                 path.ToggleDrawn(FlightGlobals.ActiveVessel.transform);
             }
+            path.ScaleTime = GUILayout.Toggle(path.ScaleTime, "");
+            GUILayout.Label("Timescale");
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal(); // END buttons
 
@@ -635,13 +640,16 @@ namespace KerbCam {
                 GUILayout.EndHorizontal(); // END key time editing
             }
 
-            {
+            if(path.ScaleTime) {
                 // Editing key timescale.
                 float oldTimescale = trnPoint.timescale;
                 GUILayout.Label(string.Format("Timescale: {0:0.00}\u00d7", oldTimescale));
-                float newTimescale = GUILayout.HorizontalSlider(oldTimescale, 0f, 1f);
+                float newTimescale = GUILayout.HorizontalSlider(oldTimescale, 0f, 4f);
                 if (Math.Abs(oldTimescale - newTimescale) > 1e-5) {
                     trnPoint.timescale = newTimescale;
+                }
+                if (GUILayout.Button("Reset timescale")) {
+                    trnPoint.timescale = 1f;
                 }
                 trnPointChanged = true;
             }

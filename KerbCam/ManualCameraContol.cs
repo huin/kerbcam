@@ -106,6 +106,7 @@ namespace KerbCam {
         /// </summary>
         private int moveStates = 0;
 
+        private GameObject ownerObject;
         public ManualMove TrnUp;
         public ManualMove TrnForward;
         public ManualMove TrnLeft;
@@ -122,8 +123,9 @@ namespace KerbCam {
         private List<ManualMove> moves = new List<ManualMove>(12);
 
         public static ManualCameraControl Create() {
-            var gameObject = new GameObject();
-            var mc = gameObject.AddComponent<ManualCameraControl>();
+            var ownerObject = new GameObject();
+            var mc = ownerObject.AddComponent<ManualCameraControl>();
+            mc.ownerObject = ownerObject;
             mc.enabled = false;
 
             mc.TrnUp = mc.AddTrn(Vector3.up, BoundKey.KEY_TRN_UP);
@@ -189,29 +191,33 @@ namespace KerbCam {
         }
 
         public void Update() {
-            var cc = State.camControl;
-            // Even if the controller is already controlling, take control
-            // with this GUI. This stops any path from moving the camera if it
-            // was controlling the camera.
-            cc.StartControlling(this);
+            try {
+                var cc = State.camControl;
+                // Even if the controller is already controlling, take control
+                // with this GUI. This stops any path from moving the camera if it
+                // was controlling the camera.
+                cc.StartControlling(this);
 
-            if (!cc.IsControlling) {
-                return;
-            }
-
-            Transform rotationTrn = cc.Camera.transform;
-            Transform translateTrn = rotationTrn.parent;
-
-            Quaternion rot = Quaternion.Inverse(rotationTrn.root.localRotation) * rotationTrn.rotation;
-
-            float deltaTime = DeltaTime();
-            float trnFactor = TranslationFactor(deltaTime);
-            float rotFactor = RotationFactor(deltaTime);
-
-            foreach (var move in moves) {
-                if (move.State) {
-                    move.AddMove(rot, translateTrn, trnFactor, rotationTrn, rotFactor);
+                if (!cc.IsControlling) {
+                    return;
                 }
+
+                Transform rotationTrn = cc.Camera.transform;
+                Transform translateTrn = rotationTrn.parent;
+
+                Quaternion rot = Quaternion.Inverse(rotationTrn.root.localRotation) * rotationTrn.rotation;
+
+                float deltaTime = DeltaTime();
+                float trnFactor = TranslationFactor(deltaTime);
+                float rotFactor = RotationFactor(deltaTime);
+
+                foreach (var move in moves) {
+                    if (move.State) {
+                        move.AddMove(rot, translateTrn, trnFactor, rotationTrn, rotFactor);
+                    }
+                }
+            } catch (Exception e) {
+                DebugUtil.LogException(e);
             }
         }
 

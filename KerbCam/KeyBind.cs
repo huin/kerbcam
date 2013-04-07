@@ -72,7 +72,7 @@ namespace KerbCam {
 
             StringBuilder s = new StringBuilder(10);
 
-            if (ev.numeric) s.Append("*");
+            if (numeric) s.Append("*");
             var mods = ev.modifiers;
             if ((mods & EventModifiers.Alt) != 0) s.Append("&");
             if ((mods & EventModifiers.Control) != 0) s.Append("^");

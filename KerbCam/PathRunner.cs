@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace KerbCam {
     public class PathRunner : MonoBehaviour, CameraController.Client {
@@ -82,45 +83,65 @@ namespace KerbCam {
         /// Overrides MonoBehaviour.Update.
         /// </summary>
         public void Update() {
-            if (!IsRunning)
-                return;
+            try {
+                if (!IsRunning)
+                    return;
 
-            float worldTime = Time.realtimeSinceStartup;
-            if (!isPaused) {
-                float dt = worldTime - lastSeenTime;
-                curTime += dt;
-            }
-            lastSeenTime = worldTime;
+                float worldTime = Time.realtimeSinceStartup;
+                if (!isPaused) {
+                    float dt = worldTime - lastSeenTime;
+                    curTime += dt;
+                }
+                lastSeenTime = worldTime;
 
-            path.UpdateTransform(controller.Camera.transform, curTime);
-            if (!isPaused && curTime >= path.MaxTime) {
-                // Pause at the end of the path.
-                isPaused = true;
+                path.UpdateTransform(controller.Camera.transform, curTime);
+                if (!isPaused && curTime >= path.MaxTime) {
+                    // Pause at the end of the path.
+                    isPaused = true;
+                }
+            } catch (Exception e) {
+                DebugUtil.LogException(e);
             }
         }
 
         private void HandleToggleRun() {
-            State.SelectedPath.Runner.ToggleRunning(State.camControl);
+            try {
+                State.SelectedPath.Runner.ToggleRunning(State.camControl);
+            } catch (Exception e) {
+                DebugUtil.LogException(e);
+            }
         }
 
         private void HandleTogglePause() {
-            State.SelectedPath.Runner.TogglePause();
+            try {
+                State.SelectedPath.Runner.TogglePause();
+            } catch (Exception e) {
+                DebugUtil.LogException(e);
+            }
         }
 
         /// <summary>
         /// Overrides MonoBehaviour.OnEnable.
         /// </summary>
         public void OnEnable() {
-            State.keyBindings.ListenKeyUp(BoundKey.KEY_PATH_TOGGLE_RUNNING, HandleToggleRun);
-            State.keyBindings.ListenKeyUp(BoundKey.KEY_PATH_TOGGLE_PAUSE, HandleTogglePause);
+            try {
+                State.keyBindings.ListenKeyUp(BoundKey.KEY_PATH_TOGGLE_RUNNING, HandleToggleRun);
+                State.keyBindings.ListenKeyUp(BoundKey.KEY_PATH_TOGGLE_PAUSE, HandleTogglePause);
+            } catch (Exception e) {
+                DebugUtil.LogException(e);
+            }
         }
 
         /// <summary>
         /// Overrides MonoBehaviour.OnDisable.
         /// </summary>
         public void OnDisable() {
-            State.keyBindings.UnlistenKeyUp(BoundKey.KEY_PATH_TOGGLE_RUNNING, HandleToggleRun);
-            State.keyBindings.UnlistenKeyUp(BoundKey.KEY_PATH_TOGGLE_PAUSE, HandleTogglePause);
+            try {
+                State.keyBindings.UnlistenKeyUp(BoundKey.KEY_PATH_TOGGLE_RUNNING, HandleToggleRun);
+                State.keyBindings.UnlistenKeyUp(BoundKey.KEY_PATH_TOGGLE_PAUSE, HandleTogglePause);
+            } catch (Exception e) {
+                DebugUtil.LogException(e);
+            }
         }
 
         void CameraController.Client.LoseController() {
