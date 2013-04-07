@@ -32,19 +32,32 @@ namespace KerbCam {
             get { return guiState || keyState; }
         }
 
+        private void FireState(bool oldState) {
+            if (stateListener == null) {
+                return;
+            }
+            bool newState = State;
+            if (oldState != newState) {
+                stateListener(id, newState);
+            }
+        }
+
         internal void SetGuiState(bool state) {
-            // TODO deal with state change
+            bool oldState = State;
             guiState = state;
+            FireState(oldState);
         }
 
         internal void HandleKeyUp() {
-            // TODO deal with state change
+            bool oldState = State;
             keyState = false;
+            FireState(oldState);
         }
 
         internal void HandleKeyDown() {
-            // TODO deal with state change
+            bool oldState = State;
             keyState = true;
+            FireState(oldState);
         }
 
         internal abstract void AddMove(Quaternion rot, Transform translateTrn, float translationFactor,
@@ -126,7 +139,6 @@ namespace KerbCam {
             var ownerObject = new GameObject();
             var mc = ownerObject.AddComponent<ManualCameraControl>();
             mc.ownerObject = ownerObject;
-            mc.enabled = false;
 
             mc.TrnUp = mc.AddTrn(Vector3.up, BoundKey.KEY_TRN_UP);
             mc.TrnForward = mc.AddTrn(Vector3.forward, BoundKey.KEY_TRN_FORWARD);
@@ -142,6 +154,8 @@ namespace KerbCam {
             mc.RotRight = mc.AddRot(Vector3.up, BoundKey.KEY_ROT_RIGHT);
             mc.RotDown = mc.AddRot(Vector3.right, BoundKey.KEY_ROT_DOWN);
 
+            mc.useGUILayout = false;
+            mc.enabled = false;
             return mc;
         }
 
@@ -176,6 +190,7 @@ namespace KerbCam {
             // Update moveStates.
             int bit = 1 << id;
             if (newState) {
+                TakeControl();
                 // Set the bit - the move is currently active.
                 moveStates |= bit;
             } else {
@@ -249,6 +264,7 @@ namespace KerbCam {
         }
 
         void CameraController.Client.LoseController() {
+            enabled = false;
         }
     }
 }

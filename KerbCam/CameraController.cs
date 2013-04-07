@@ -32,6 +32,9 @@ namespace KerbCam {
         }
 
         public void StartControlling(Client client) {
+            if (client == curClient) {
+                return;
+            }
             if (curClient != null) {
                 curClient.LoseController();
             }
