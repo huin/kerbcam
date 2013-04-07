@@ -85,7 +85,6 @@ namespace KerbCam {
             }
 
             public void DoGUI() {
-                GUILayout.BeginVertical();
                 foreach (var row in buttonGrid) {
                     GUILayout.BeginHorizontal();
                     foreach (var button in row) {
@@ -97,7 +96,6 @@ namespace KerbCam {
                     }
                     GUILayout.EndHorizontal(); // END control toggle
                 }
-                GUILayout.EndVertical();
             }
         }
 
@@ -130,8 +128,14 @@ namespace KerbCam {
 
             GUILayout.BeginHorizontal(); // BEGIN side-by-side
 
+            GUILayout.BeginVertical();
+            mc.translateSliderPosition = GUILayout.HorizontalSlider(mc.translateSliderPosition, -3f, 3f);
             trnButtons.DoGUI();
+            GUILayout.EndVertical();
+            GUILayout.BeginVertical();
+            mc.rotateSliderPosition = GUILayout.HorizontalSlider(mc.rotateSliderPosition, -3f, 3f);
             rotButtons.DoGUI();
+            GUILayout.EndVertical();
             GUILayout.FlexibleSpace();
 
             GUILayout.EndHorizontal(); // END side-by-side
