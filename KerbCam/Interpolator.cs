@@ -19,8 +19,21 @@ namespace KerbCam {
         // frames is maintained sorted on Frame.param.
         private List<Key<Value>> keys = new List<Key<Value>>();
 
-        public Key<Value> this[int index] {
-            get { return keys[index]; }
+        public Value this[int index] {
+            get { return keys[index].value; }
+            set {
+                var key = keys[index];
+                key.value = value;
+                keys[index] = key;
+            }
+        }
+
+        public float GetParam(int index) {
+            return keys[index].param;
+        }
+
+        public Key<Value> GetKey(int index) {
+            return keys[index];
         }
 
         public int Count {
@@ -140,12 +153,12 @@ namespace KerbCam {
 
             int lower = FindLowerIndex(param);
             if (lower < 0)
-                return this[0].value;
+                return this[0];
             if (lower >= Count - 1)
-                return this[Count - 1].value;
+                return this[Count - 1];
 
-            float lowerT = this[lower].param;
-            float upperT = this[lower + 1].param;
+            float lowerT = GetParam(lower);
+            float upperT = GetParam(lower+1);
             float range = upperT - lowerT;
 
             // Avoid nasty divide-by-zero math for keys that are very close together in param.
@@ -154,7 +167,7 @@ namespace KerbCam {
             }
 
             return interpolator.Evaluate(
-                this[lower].value, this[lower + 1].value,
+                this[lower], this[lower + 1],
                 (param - lowerT) / range);
         }
     }
@@ -190,14 +203,14 @@ namespace KerbCam {
 
             int k1Index = FindLowerIndex(param);
             if (k1Index < 0)
-                return this[0].value;
+                return this[0];
             if (k1Index >= Count - 1)
-                return this[Count - 1].value;
+                return this[Count - 1];
 
             int k2Index = k1Index + 1;
 
-            float k1Param = this[k1Index].param;
-            float K2Param = this[k2Index].param;
+            float k1Param = GetParam(k1Index);
+            float K2Param = GetParam(k2Index);
             float range = K2Param - k1Param;
 
             // Avoid nasty divide-by-zero math for keys that are very close together in param.
@@ -209,7 +222,7 @@ namespace KerbCam {
             bool haveK0 = k0Index >= 0;
             Key<Value> k0;
             if (haveK0) {
-                k0 = this[k0Index];
+                k0 = GetKey(k0Index);
             } else {
                 k0 = default(Key<Value>);
             }
@@ -218,14 +231,14 @@ namespace KerbCam {
             bool haveK3 = k3Index < Count;
             Key<Value> k3;
             if (haveK3) {
-                k3 = this[k3Index];
+                k3 = GetKey(k3Index);
             } else {
                 k3 = default(Key<Value>);
             }
 
             return interpolator.Evaluate(
                 k0, haveK0,
-                this[k1Index], this[k2Index],
+                GetKey(k1Index), GetKey(k2Index),
                 k3, haveK3,
                 (param - k1Param) / range);
         }

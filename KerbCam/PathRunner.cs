@@ -50,7 +50,7 @@ namespace KerbCam {
         }
 
         public void StartRunning(CameraController controller) {
-            if (IsRunning || path.NumKeys == 0) {
+            if (IsRunning || path.Count == 0) {
                 return;
             }
 
@@ -71,6 +71,7 @@ namespace KerbCam {
             }
             isPaused = false;
             curTime = 0f;
+            Time.timeScale = 1f;
         }
 
         public void TogglePause() {

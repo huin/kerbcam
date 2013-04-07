@@ -24,9 +24,9 @@ namespace KerbCamTest {
 
         [TestMethod]
         public void TestOrdered() {
-            Assert.AreEqual(0f, ps[0].param);
-            Assert.AreEqual(1f, ps[1].param);
-            Assert.AreEqual(2f, ps[2].param);
+            Assert.AreEqual(0f, ps.GetParam(0));
+            Assert.AreEqual(1f, ps.GetParam(1));
+            Assert.AreEqual(2f, ps.GetParam(2));
         }
 
         [TestMethod]
@@ -39,19 +39,19 @@ namespace KerbCamTest {
         [TestMethod]
         public void TestMove() {
             Assert.AreEqual(2, ps.MoveKeyAt(1, 2.5f));
-            Assert.AreEqual("zero", ps[0].value);
-            Assert.AreEqual("two", ps[1].value);
-            Assert.AreEqual("one", ps[2].value);
-            Assert.AreEqual(2.5f, ps[2].param);
+            Assert.AreEqual("zero", ps[0]);
+            Assert.AreEqual("two", ps[1]);
+            Assert.AreEqual("one", ps[2]);
+            Assert.AreEqual(2.5f, ps.GetParam(2));
         }
 
         [TestMethod]
         public void TestMoveToSameIndex() {
             Assert.AreEqual(1, ps.MoveKeyAt(1, 1.5f));
-            Assert.AreEqual("zero", ps[0].value);
-            Assert.AreEqual("one", ps[1].value);
-            Assert.AreEqual(1.5f, ps[1].param);
-            Assert.AreEqual("two", ps[2].value);
+            Assert.AreEqual("zero", ps[0]);
+            Assert.AreEqual("one", ps[1]);
+            Assert.AreEqual(1.5f, ps.GetParam(1));
+            Assert.AreEqual("two", ps[2]);
         }
 
         [TestMethod]

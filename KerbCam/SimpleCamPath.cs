@@ -5,6 +5,7 @@ namespace KerbCam {
     public class TransformPoint : IConfigNode {
         public Vector3 position;
         public Quaternion rotation;
+        public float timescale;
 
         public void Load(ConfigNode node) {
             string posStr = node.GetValue("POSITION");
@@ -19,11 +20,13 @@ namespace KerbCam {
             } else {
                 rotation = Quaternion.identity;
             }
+            ConfigUtil.Parse<float>(node, "TIMESCALE", out timescale, 1f);
         }
 
         public void Save(ConfigNode node) {
             node.AddValue("POSITION", ConfigNode.WriteVector(position));
             node.AddValue("ROTATION", ConfigNode.WriteQuaternion(rotation));
+            ConfigUtil.Write<float>(node, "TIMESCALE", timescale);
         }
     }
 
@@ -70,25 +73,32 @@ namespace KerbCam {
             return new TransformPoint {
                 position = EvaluatePosition(
                     ref k0, haveK0, ref k1, ref k2, ref k3, haveK3, t),
-                rotation = EvaluateRotation(ref k0, haveK0, ref k1, ref k2, ref k3, haveK3, t)
+                rotation = EvaluateRotation(ref k0, haveK0, ref k1, ref k2, ref k3, haveK3, t),
+                timescale = EvaluateTimescale(ref k0, haveK0, ref k1, ref k2, ref k3, haveK3, t),
             };
         }
 
-        private Quaternion EvaluateRotation(ref Key<TransformPoint> k0, bool haveK0, ref Key<TransformPoint> k1, ref Key<TransformPoint> k2, ref Key<TransformPoint> k3, bool haveK3, float t) {
-            switch (rotType) {
-                case RotType.Component:
-                    return EvaluateRotationComponent(
-                        ref k0, haveK0, ref k1, ref k2, ref k3, haveK3, t);
-                case RotType.Slerp:
-                    return EvaluateRotationSlerp(
-                        ref k0, haveK0, ref k1, ref k2, ref k3, haveK3, t);
-                case RotType.Squad:
-                    return EvaluateRotationSquad(
-                        ref k0, haveK0, ref k1, ref k2, ref k3, haveK3, t);
-                default:
-                    Debug.LogWarning("Unhandled RotType " + rotType);
-                    goto case RotType.Slerp;
+        private static float EvaluateTimescale(ref Key<TransformPoint> k0, bool haveK0,
+            ref Key<TransformPoint> k1,
+            ref Key<TransformPoint> k2,
+            ref Key<TransformPoint> k3, bool haveK3,
+            float t) {
+
+            float dp = k2.param - k1.param;
+
+            float m0 = 0f;
+            if (haveK0) {
+                m0 = SplineUtil.T(
+                    k0.param, k1.param, k2.param,
+                    k0.value.timescale, k1.value.timescale, k2.value.timescale) * dp;
             }
+            float m1 = 0f;
+            if (haveK3) {
+                m1 = SplineUtil.T(
+                    k1.param, k2.param, k3.param,
+                    k1.value.timescale, k2.value.timescale, k3.value.timescale) * dp;
+            }
+            return SplineUtil.CubicHermite(t, k1.value.position.x, m0, k2.value.position.x, m1);
         }
 
         private static Vector3 EvaluatePosition(
@@ -130,6 +140,23 @@ namespace KerbCam {
                 z = SplineUtil.CubicHermite(t, k1.value.position.z, m0.z, k2.value.position.z, m1.z)
             };
             return position;
+        }
+
+        private Quaternion EvaluateRotation(ref Key<TransformPoint> k0, bool haveK0, ref Key<TransformPoint> k1, ref Key<TransformPoint> k2, ref Key<TransformPoint> k3, bool haveK3, float t) {
+            switch (rotType) {
+                case RotType.Component:
+                    return EvaluateRotationComponent(
+                        ref k0, haveK0, ref k1, ref k2, ref k3, haveK3, t);
+                case RotType.Slerp:
+                    return EvaluateRotationSlerp(
+                        ref k0, haveK0, ref k1, ref k2, ref k3, haveK3, t);
+                case RotType.Squad:
+                    return EvaluateRotationSquad(
+                        ref k0, haveK0, ref k1, ref k2, ref k3, haveK3, t);
+                default:
+                    Debug.LogWarning("Unhandled RotType " + rotType);
+                    goto case RotType.Slerp;
+            }
         }
 
         /// <summary>
@@ -280,7 +307,7 @@ namespace KerbCam {
             set { this.name = value; }
         }
 
-        public int NumKeys {
+        public int Count {
             get { return transformsCurve.Count; }
         }
 
@@ -288,16 +315,17 @@ namespace KerbCam {
             get { return transformsCurve.MaxParam; }
         }
 
-        private TransformPoint MakeTransformPoint(Transform trn, Transform relTo) {
+        public static TransformPoint MakeTransformPoint(Transform trn, Transform relTo, float timescale) {
             Quaternion reversedRelRot = Quaternion.Inverse(relTo.rotation);
             return new TransformPoint {
                 position = reversedRelRot * (trn.position - relTo.position),
-                rotation = reversedRelRot * trn.rotation
+                rotation = reversedRelRot * trn.rotation,
+                timescale = timescale,
             };
         }
 
-        public int AddKey(Transform trn, Transform relTo, float time) {
-            var v = MakeTransformPoint(trn, relTo);
+        public int AddKey(Transform trn, Transform relTo, float time, float timescale) {
+            var v = MakeTransformPoint(trn, relTo, timescale);
             int index = transformsCurve.AddKey(time, v);
             UpdateDrawn();
             return index;
@@ -305,15 +333,21 @@ namespace KerbCam {
 
         public void AddKeyToEnd(Transform trn, Transform relTo) {
             if (transformsCurve.Count > 0) {
-                AddKey(trn, relTo, MaxTime + 5f);
+                float lastTimescale = transformsCurve[transformsCurve.Count - 1].timescale;
+                AddKey(trn, relTo, MaxTime + 5f, lastTimescale);
             } else {
-                AddKey(trn, relTo, 0f);
+                AddKey(trn, relTo, 0f, 1f);
             }
             UpdateDrawn();
         }
 
+        public TransformPoint this[int index] {
+            get { return transformsCurve[index]; }
+            set { transformsCurve[index] = value; }
+        }
+
         public float TimeAt(int index) {
-            return transformsCurve[index].param;
+            return transformsCurve.GetParam(index);
         }
 
         public int MoveKeyAt(int index, float t) {
@@ -366,6 +400,7 @@ namespace KerbCam {
             objParentTrns.localPosition = curTrnPoint.position;
             objTrns.localRotation = curTrnPoint.rotation;
             objTrns.localPosition = Vector3.zero;
+            Time.timeScale = curTrnPoint.timescale;
         }
 
         public SimpleCamPathEditor MakeEditor() {
@@ -420,8 +455,8 @@ namespace KerbCam {
             for (int i = 0; i < transformsCurve.Count; i++) {
                 var v = transformsCurve[i];
                 var pointNode = node.AddNode("POINT");
-                pointNode.AddValue("PARAM", v.param);
-                v.value.Save(pointNode);
+                pointNode.AddValue("PARAM", transformsCurve.GetParam(i));
+                v.Save(pointNode);
             }
         }
     }
@@ -459,7 +494,7 @@ namespace KerbCam {
         private void DoPathEditing() {
             GUILayout.BeginVertical(); // BEGIN path editing
             GUILayout.Label(
-                string.Format("Simple camera path [{0} keys]", path.NumKeys));
+                string.Format("Simple camera path [{0} keys]", path.Count));
 
             GUILayout.BeginHorizontal(); // BEGIN name field
             GUILayout.Label("Name:");
@@ -495,7 +530,7 @@ namespace KerbCam {
         private void DoKeysList() {
             // BEGIN Path keys list and scroller.
             scrollPosition = GUILayout.BeginScrollView(scrollPosition, false, true);
-            for (int i = 0; i < path.NumKeys; i++) {
+            for (int i = 0; i < path.Count; i++) {
                 GUILayout.BeginHorizontal();
                 bool isSelected = i == selectedKeyIndex;
                 bool doSelect = GUILayout.Toggle(isSelected, "");
@@ -558,20 +593,25 @@ namespace KerbCam {
         }
 
         private void DoKeyEditing() {
-            if (selectedKeyIndex < 0 || selectedKeyIndex >= path.NumKeys) {
+            if (selectedKeyIndex < 0 || selectedKeyIndex >= path.Count) {
                 return;
             }
+
+            bool remove = false;
+            float keyTime = path.TimeAt(selectedKeyIndex);
+            bool keyTimeChanged = false;
+            TransformPoint trnPoint = path[selectedKeyIndex];
+            bool trnPointChanged = false;
 
             // Vertical time slider for selected key time.
             // This is a key editing control, but uses the vertical space
             // between path and key editing controls, so it's not put into
             // the key editing buttons layout region.
             {
-                float keyTime = path.TimeAt(selectedKeyIndex);
                 float newKeyTime = GUILayout.VerticalSlider(keyTime, 0f, path.MaxTime);
                 if (Math.Abs(keyTime - newKeyTime) > 1e-5) {
-                    selectedKeyIndex = path.MoveKeyAt(selectedKeyIndex, newKeyTime);
-                    UpdateSelectedKeyTime();
+                    keyTime = newKeyTime;
+                    keyTimeChanged = true;
                 }
             }
 
@@ -586,7 +626,8 @@ namespace KerbCam {
                     selectedKeyTimeString = newSelectedKeyTimeString;
                     float newKeyTime;
                     if (float.TryParse(selectedKeyTimeString, out newKeyTime)) {
-                        selectedKeyIndex = path.MoveKeyAt(selectedKeyIndex, newKeyTime);
+                        keyTime = newKeyTime;
+                        keyTimeChanged = true;
                     }
                 }
                 GUILayout.Label("s");
@@ -594,13 +635,23 @@ namespace KerbCam {
                 GUILayout.EndHorizontal(); // END key time editing
             }
 
+            {
+                // Editing key timescale.
+                float oldTimescale = trnPoint.timescale;
+                GUILayout.Label(string.Format("Timescale: {0:0.00}\u00d7", oldTimescale));
+                float newTimescale = GUILayout.HorizontalSlider(oldTimescale, 0f, 1f);
+                if (Math.Abs(oldTimescale - newTimescale) > 1e-5) {
+                    trnPoint.timescale = newTimescale;
+                }
+                trnPointChanged = true;
+            }
+
             if (GUILayout.Button("Set")) {
-                var keyTime = path.TimeAt(selectedKeyIndex);
-                path.RemoveKey(selectedKeyIndex);
-                selectedKeyIndex = path.AddKey(
+                trnPoint = SimpleCamPath.MakeTransformPoint(
                     Camera.main.transform,
                     FlightGlobals.ActiveVessel.transform,
-                    keyTime);
+                    trnPoint.timescale);
+                trnPointChanged = true;
             }
 
             if (GUILayout.Button("View")) {
@@ -610,18 +661,32 @@ namespace KerbCam {
             }
 
             if (GUILayout.Button("Remove", C.DeleteButtonStyle)) {
-                path.RemoveKey(selectedKeyIndex);
-                if (selectedKeyIndex >= path.NumKeys) {
-                    selectedKeyIndex = 0;
-                }
-                UpdateSelectedKeyTime();
+                remove = true;
             }
 
             GUILayout.EndVertical(); // END key editing buttons
+
+            if (remove) {
+                path.RemoveKey(selectedKeyIndex);
+                if (selectedKeyIndex >= path.Count) {
+                    selectedKeyIndex = 0;
+                }
+                UpdateSelectedKeyTime();
+                // Don't make any other potential changes to the key.
+                return;
+            }
+
+            if (keyTimeChanged) {
+                selectedKeyIndex = path.MoveKeyAt(selectedKeyIndex, keyTime);
+            }
+
+            if (trnPointChanged) {
+                path[selectedKeyIndex] = trnPoint;
+            }
         }
 
         private void UpdateSelectedKeyTime() {
-            if (selectedKeyIndex >= 0 && selectedKeyIndex < path.NumKeys) {
+            if (selectedKeyIndex >= 0 && selectedKeyIndex < path.Count) {
                 selectedKeyTimeString = string.Format("{0:0.00}",
                     path.TimeAt(selectedKeyIndex));
             } else {
