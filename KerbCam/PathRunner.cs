@@ -72,7 +72,8 @@ namespace KerbCam {
             }
             isPaused = false;
             curTime = 0f;
-            Time.timeScale = 1f;
+            // Attempt to nudge the TimeWarp to restore the intended time rate.
+            TimeWarp.SetRate(TimeWarp.CurrentRateIndex, true);
         }
 
         public void TogglePause() {
