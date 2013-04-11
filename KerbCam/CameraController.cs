@@ -65,7 +65,7 @@ namespace KerbCam {
             cam.enabled = true;
         }
 
-        public void StopControlling() {
+        public void StopControlling(bool restoreCamera) {
             if (!isControlling) {
                 return;
             }
@@ -76,12 +76,17 @@ namespace KerbCam {
                 curClient = null;
             }
 
-            // Restore old camera state.
-            cam.CopyFrom(oldCamSettings);
-            cam.transform.localPosition = oldCamPos;
-            cam.transform.localRotation = oldCamRot;
-            cam.transform.parent = oldCamTrnParent;
-            cam.enabled = true;
+            if (restoreCamera) {
+                // Restore old camera state.
+                cam.CopyFrom(oldCamSettings);
+                cam.transform.localPosition = oldCamPos;
+                cam.transform.localRotation = oldCamRot;
+                cam.transform.parent = oldCamTrnParent;
+                cam.enabled = true;
+
+                var fc = FlightCamera.fetch;
+                fc.ActivateUpdate();
+            }
 
             // Throw away old references.
             oldCamTrnParent = null;
@@ -90,9 +95,6 @@ namespace KerbCam {
             oldCamSettings = null;
             GameObject.Destroy(camTrnObj);
             camTrnObj = null;
-
-            var fc = FlightCamera.fetch;
-            fc.ActivateUpdate();
         }
     }
 }

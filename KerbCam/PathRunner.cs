@@ -14,6 +14,7 @@ namespace KerbCam {
 
         internal static PathRunner Create(SimpleCamPath path) {
             GameObject ownerObject = new GameObject("KerbCam.PathRunner");
+            UnityEngine.Object.DontDestroyOnLoad(ownerObject);
             PathRunner runner = ownerObject.AddComponent<PathRunner>();
             runner.path = path;
             runner.ownerObject = ownerObject;
@@ -67,7 +68,7 @@ namespace KerbCam {
                 return;
             }
             if (controller != null) {
-                controller.StopControlling();
+                controller.StopControlling(true);
                 controller = null;
             }
             isPaused = false;

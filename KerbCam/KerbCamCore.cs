@@ -64,6 +64,14 @@ namespace KerbCam {
             }
         }
 
+        public void OnLevelWasLoaded(int level) {
+            try {
+                State.Stop();
+            } catch (Exception e) {
+                DebugUtil.LogException(e);
+            }
+        }
+
         private void HandleDebug() {
             if (State.developerMode) {
                 // Random bits of logging used by the developer to
@@ -217,7 +225,7 @@ namespace KerbCam {
                 if (selectedPath != null) {
                     selectedPath.Runner.StopRunning();
                     selectedPath.StopDrawing();
-                    camControl.StopControlling();
+                    camControl.StopControlling(true);
                     selectedPath.Runner.enabled = false;
                 }
                 selectedPath = value;
@@ -232,8 +240,11 @@ namespace KerbCam {
         }
 
         public static void Stop() {
+            if (!initialized) {
+                return;
+            }
+            camControl.StopControlling(false);
             SelectedPath = null;
-            camControl.StopControlling();
             mainWindow.HideWindow();
         }
     }

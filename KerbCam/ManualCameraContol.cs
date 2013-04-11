@@ -137,6 +137,7 @@ namespace KerbCam {
 
         public static ManualCameraControl Create() {
             var ownerObject = new GameObject();
+            UnityEngine.Object.DontDestroyOnLoad(ownerObject);
             var mc = ownerObject.AddComponent<ManualCameraControl>();
             mc.ownerObject = ownerObject;
 
@@ -182,7 +183,7 @@ namespace KerbCam {
         }
 
         public void LoseControl() {
-            State.camControl.StopControlling();
+            State.camControl.StopControlling(true);
             enabled = false;
         }
 
