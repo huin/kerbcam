@@ -10,6 +10,11 @@ namespace KerbCam {
             return Math.Abs(dt) < 1e-7;
         }
 
+        public static float Linear(float t, float p0, float p1) {
+            float dp = p1 - p0;
+            return p0 + dp * t;
+        }
+
         /// <summary>
         /// Interpolates a value using a the Cubic Hermite spline formula.
         /// http://en.wikipedia.org/wiki/Cubic_Hermite_spline

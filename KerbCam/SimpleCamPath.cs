@@ -84,21 +84,8 @@ namespace KerbCam {
             ref Key<TransformPoint> k3, bool haveK3,
             float t) {
 
-            float dp = k2.param - k1.param;
-
-            float m0 = 0f;
-            if (haveK0) {
-                m0 = SplineUtil.T(
-                    k0.param, k1.param, k2.param,
-                    k0.value.timescale, k1.value.timescale, k2.value.timescale) * dp;
-            }
-            float m1 = 0f;
-            if (haveK3) {
-                m1 = SplineUtil.T(
-                    k1.param, k2.param, k3.param,
-                    k1.value.timescale, k2.value.timescale, k3.value.timescale) * dp;
-            }
-            return Math.Max(0f, SplineUtil.CubicHermite(t, k1.value.timescale, m0, k2.value.timescale, m1));
+            return Math.Max(0f, SplineUtil.Linear(
+                t, k1.value.timescale, k2.value.timescale));
         }
 
         private static Vector3 EvaluatePosition(
