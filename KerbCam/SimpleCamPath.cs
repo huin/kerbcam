@@ -495,7 +495,7 @@ namespace KerbCam {
 
             DoKeysList();
 
-            DoNewKeyControls();
+            DoUnderListControls();
 
             if (State.developerMode) {
                 GUILayout.BeginHorizontal(); // BEGIN rotation choice
@@ -558,8 +558,6 @@ namespace KerbCam {
             if (path.IsDrawn != shouldDraw) {
                 path.ToggleDrawn(FlightGlobals.ActiveVessel.transform);
             }
-            path.ScaleTime = GUILayout.Toggle(path.ScaleTime, "");
-            GUILayout.Label("Timescale");
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal(); // END buttons
 
@@ -572,7 +570,7 @@ namespace KerbCam {
             GUILayout.EndVertical(); // END playback controls
         }
 
-        private void DoNewKeyControls() {
+        private void DoUnderListControls() {
             GUILayout.BeginHorizontal();
             // Create key at the end.
             if (GUILayout.Button("New key")) {
@@ -580,6 +578,8 @@ namespace KerbCam {
                     Camera.main.transform,
                     Camera.main.transform.root);
             }
+            path.ScaleTime = GUILayout.Toggle(path.ScaleTime, "");
+            GUILayout.Label("Timescale");
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
         }
@@ -613,6 +613,7 @@ namespace KerbCam {
             {
                 // Direct editing of key time.
                 GUILayout.BeginHorizontal(); // BEGIN key time editing
+                GUILayout.Label("@");
                 string newSelectedKeyTimeString = GUILayout.TextField(selectedKeyTimeString);
                 if (newSelectedKeyTimeString != selectedKeyTimeString) {
                     selectedKeyTimeString = newSelectedKeyTimeString;
@@ -673,6 +674,7 @@ namespace KerbCam {
 
             if (keyTimeChanged) {
                 selectedKeyIndex = path.MoveKeyAt(selectedKeyIndex, keyTime);
+                UpdateSelectedKeyTime();
             }
 
             if (trnPointChanged) {

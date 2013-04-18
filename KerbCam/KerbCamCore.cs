@@ -325,13 +325,15 @@ namespace KerbCam {
                 resizer.MinHeight = minHeight;
                 resizer.MinWidth = minWidth;
 
+                var noExpandWidth = GUILayout.ExpandWidth(false);
+
                 GUILayout.BeginVertical(); // BEGIN outer container
 
                 GUILayout.BeginHorizontal(); // BEGIN left/right panes
 
-                GUILayout.BeginVertical(); // BEGIN main controls
+                GUILayout.BeginVertical(noExpandWidth); // BEGIN main controls
 
-                if (GUILayout.Button("New simple path")) {
+                if (GUILayout.Button("New simple path", noExpandWidth)) {
                     State.SelectedPath = State.NewPath();
                 }
 
@@ -340,7 +342,7 @@ namespace KerbCam {
                 bool pressed = GUILayout.Button(
                     (cameraControlsOpen ? "\u25bd" : "\u25b9")
                     + " Camera controls",
-                    C.FoldButtonStyle);
+                    C.FoldButtonStyle, noExpandWidth);
                 cameraControlsOpen = cameraControlsOpen ^ pressed;
                 if (cameraControlsOpen) {
                     cameraGui.DoGUI();
@@ -382,11 +384,13 @@ namespace KerbCam {
         }
 
         private void DoPathList() {
+            var noExpandWidth = GUILayout.ExpandWidth(false);
+
             // Scroll list allowing selection of an existing path.
-            pathListScroll = GUILayout.BeginScrollView(pathListScroll, false, true);
+            pathListScroll = GUILayout.BeginScrollView(pathListScroll, false, true, noExpandWidth);
             for (int i = 0; i < State.paths.Count; i++) {
-                GUILayout.BeginHorizontal(); // BEGIN path widgets
-                if (GUILayout.Button("X", C.DeleteButtonStyle)) {
+                GUILayout.BeginHorizontal(noExpandWidth); // BEGIN path widgets
+                if (GUILayout.Button("X", C.DeleteButtonStyle, noExpandWidth)) {
                     State.RemovePathAt(i);
                     if (i >= State.paths.Count) {
                         break;
@@ -396,7 +400,7 @@ namespace KerbCam {
                 {
                     var path = State.paths[i];
                     bool isSelected = path == State.SelectedPath;
-                    bool doSelect = GUILayout.Toggle(path == State.SelectedPath, "");
+                    bool doSelect = GUILayout.Toggle(path == State.SelectedPath, "", noExpandWidth);
                     if (isSelected != doSelect) {
                         if (doSelect) {
                             State.SelectedPath = path;
@@ -404,9 +408,9 @@ namespace KerbCam {
                             State.SelectedPath = null;
                         }
                     }
-                    GUILayout.Label(path.Name);
+                    GUILayout.Label(path.Name, noExpandWidth);
                 }
-                GUILayout.FlexibleSpace();
+                //GUILayout.FlexibleSpace();
                 GUILayout.EndHorizontal(); // END path widgets
             }
             GUILayout.EndScrollView();

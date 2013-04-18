@@ -111,7 +111,7 @@ namespace KerbCam {
             var cc = State.camControl;
             var mc = State.manCamControl;
 
-            GUILayout.BeginVertical(); // BEGIN toggle above movement
+            GUILayout.BeginVertical(GUILayout.ExpandWidth(false)); // BEGIN toggle above movement
 
             GUILayout.BeginHorizontal(); // BEGIN control toggle
             bool shouldControl = GUILayout.Toggle(cc.IsControlling, "");
