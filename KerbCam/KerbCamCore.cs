@@ -255,6 +255,7 @@ namespace KerbCam {
         private SimpleCamPathEditor pathEditor = null;
         private Vector2 pathListScroll = new Vector2();
         private WindowResizer resizer;
+        private VesselSelectionWindow vesselSelectionWindow;
         private HelpWindow helpWindow;
         private ConfigWindow configWindow;
         private bool cameraControlsOpen = false;
@@ -265,6 +266,7 @@ namespace KerbCam {
             resizer = new WindowResizer(
                 new Rect(50, 50, 250, 200),
                 new Vector2(GetGuiMinHeight(), GetGuiMinWidth()));
+            vesselSelectionWindow = new VesselSelectionWindow();
             helpWindow = new HelpWindow(assembly);
             cameraGui = new ManualCameraControlGUI();
             configWindow = new ConfigWindow();
@@ -282,6 +284,7 @@ namespace KerbCam {
 
         public override void HideWindow() {
             base.HideWindow();
+            vesselSelectionWindow.HideWindow();
             helpWindow.HideWindow();
             configWindow.HideWindow();
         }
@@ -338,6 +341,10 @@ namespace KerbCam {
                 }
 
                 DoPathList();
+
+                if (GUILayout.Button("Relative to")) {
+                    vesselSelectionWindow.ShowWindow();
+                }
 
                 bool pressed = GUILayout.Button(
                     (cameraControlsOpen ? "\u25bd" : "\u25b9")
@@ -413,6 +420,60 @@ namespace KerbCam {
                 GUILayout.EndHorizontal(); // END path widgets
             }
             GUILayout.EndScrollView();
+        }
+    }
+
+    class VesselSelectionWindow : BaseWindow {
+        private Vector2 vesselListScroll = new Vector2();
+        private WindowResizer resizer;
+
+        public VesselSelectionWindow() {
+            resizer = new WindowResizer(
+                new Rect(50, 250, 250, 200),
+                new Vector2(200, 170));
+        }
+
+        protected override void DrawGUI() {
+            GUI.skin = HighLogic.Skin;
+            resizer.Position = GUILayout.Window(
+                windowId, resizer.Position, DoGUI,
+                "Choose vessel",
+                resizer.LayoutMinWidth(),
+                resizer.LayoutMinHeight());
+        }
+
+        private void DoGUI(int windowID) {
+            try {
+                GUILayout.BeginVertical(); // BEGIN outer container
+
+                Vessel relVessel = State.camControl.RelativeVessel;
+
+                if (GUILayout.Toggle(relVessel == null, "Active vessel")) {
+                    relVessel = null;
+                }
+                GUILayout.BeginScrollView(vesselListScroll); // BEGIN vessel list scroller
+                GUILayout.BeginVertical(); // BEGIN vessel list
+                foreach (Vessel vessel in FlightGlobals.Vessels) {
+                    if (vessel.loaded && GUILayout.Toggle(relVessel == vessel, vessel.name)) {
+                        relVessel = vessel;
+                    }
+                }
+                GUILayout.EndVertical(); // END vessel list
+                GUILayout.EndScrollView(); // END vessel list scroller
+                State.camControl.RelativeVessel = relVessel;
+
+                GUILayout.BeginHorizontal(); // BEGIN lower controls
+                GUILayout.FlexibleSpace();
+                DoCloseButton();
+                resizer.HandleResize();
+                GUILayout.EndHorizontal(); // END lower controls
+
+                GUILayout.EndVertical(); // END outer container
+
+                GUI.DragWindow(new Rect(0, 0, 10000, 25));
+            } catch (Exception e) {
+                DebugUtil.LogException(e);
+            }
         }
     }
 

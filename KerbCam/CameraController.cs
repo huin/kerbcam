@@ -22,9 +22,30 @@ namespace KerbCam {
         protected Camera cam = null;
         private GameObject camTrnObj = null;
         private Client curClient = null;
+        private Vessel relativeVessel = null;
 
         public Camera Camera {
             get { return cam; }
+        }
+
+        /// <summary>
+        /// Sets the vessel to move the camera relative to. If null, then use the active vessel.
+        /// </summary>
+        public Vessel RelativeVessel {
+            get { return relativeVessel; }
+            set {
+                if (relativeVessel != value) {
+                    relativeVessel = value;
+                    UpdateParentTransform();
+                }
+            }
+        }
+
+        public Vessel EffectiveRelativeVessel {
+            get {
+                if (relativeVessel == null) return FlightGlobals.ActiveVessel;
+                else return relativeVessel;
+            }
         }
 
         public bool IsControlling {
@@ -61,8 +82,14 @@ namespace KerbCam {
             // Replace with our own state.
             camTrnObj = new GameObject("KerbCam transform");
             cam.transform.parent = camTrnObj.transform;
-            camTrnObj.transform.parent = FlightGlobals.ActiveVessel.transform;
+            camTrnObj.transform.parent = EffectiveRelativeVessel.transform;
             cam.enabled = true;
+        }
+
+        private void UpdateParentTransform() {
+            if (camTrnObj != null) {
+                camTrnObj.transform.parent = EffectiveRelativeVessel.transform;
+            }
         }
 
         public void StopControlling(bool restoreCamera) {
