@@ -410,7 +410,6 @@ namespace KerbCam {
                     }
                     GUILayout.Label(path.Name, noExpandWidth);
                 }
-                //GUILayout.FlexibleSpace();
                 GUILayout.EndHorizontal(); // END path widgets
             }
             GUILayout.EndScrollView();
