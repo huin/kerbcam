@@ -264,7 +264,7 @@ namespace KerbCam {
         public MainWindow() {
             assembly = Assembly.GetCallingAssembly();
             resizer = new WindowResizer(
-                new Rect(50, 50, 250, 200),
+                new Rect(50, 50, 250, 250),
                 new Vector2(GetGuiMinHeight(), GetGuiMinWidth()));
             vesselSelectionWindow = new VesselSelectionWindow();
             helpWindow = new HelpWindow(assembly);
@@ -279,7 +279,7 @@ namespace KerbCam {
         }
 
         public float GetGuiMinWidth() {
-            return 250;
+            return 280;
         }
 
         public override void HideWindow() {
@@ -328,15 +328,13 @@ namespace KerbCam {
                 resizer.MinHeight = minHeight;
                 resizer.MinWidth = minWidth;
 
-                var noExpandWidth = GUILayout.ExpandWidth(false);
-
                 GUILayout.BeginVertical(); // BEGIN outer container
 
                 GUILayout.BeginHorizontal(); // BEGIN left/right panes
 
-                GUILayout.BeginVertical(noExpandWidth); // BEGIN main controls
+                GUILayout.BeginVertical(GUILayout.MaxWidth(140)); // BEGIN main controls
 
-                if (GUILayout.Button("New simple path", noExpandWidth)) {
+                if (GUILayout.Button("New simple path")) {
                     State.SelectedPath = State.NewPath();
                 }
 
@@ -349,7 +347,7 @@ namespace KerbCam {
                 bool pressed = GUILayout.Button(
                     (cameraControlsOpen ? "\u25bd" : "\u25b9")
                     + " Camera controls",
-                    C.FoldButtonStyle, noExpandWidth);
+                    C.FoldButtonStyle);
                 cameraControlsOpen = cameraControlsOpen ^ pressed;
                 if (cameraControlsOpen) {
                     cameraGui.DoGUI();
@@ -394,7 +392,7 @@ namespace KerbCam {
             var noExpandWidth = GUILayout.ExpandWidth(false);
 
             // Scroll list allowing selection of an existing path.
-            pathListScroll = GUILayout.BeginScrollView(pathListScroll, false, true, noExpandWidth);
+            pathListScroll = GUILayout.BeginScrollView(pathListScroll, false, true);
             for (int i = 0; i < State.paths.Count; i++) {
                 GUILayout.BeginHorizontal(noExpandWidth); // BEGIN path widgets
                 if (GUILayout.Button("X", C.DeleteButtonStyle, noExpandWidth)) {
@@ -415,7 +413,7 @@ namespace KerbCam {
                             State.SelectedPath = null;
                         }
                     }
-                    GUILayout.Label(path.Name, noExpandWidth);
+                    GUILayout.Label(path.Name);
                 }
                 GUILayout.EndHorizontal(); // END path widgets
             }

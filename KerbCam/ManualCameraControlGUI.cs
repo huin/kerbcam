@@ -100,7 +100,7 @@ namespace KerbCam {
         }
 
         public float GetGuiMinHeight() {
-            return 100;
+            return 150;
         }
 
         public float GetGuiMinWidth() {
