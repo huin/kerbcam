@@ -1,5 +1,7 @@
 ﻿using System;
 using UnityEngine;
+using System.Collections.Generic;
+using System.Text;
 
 namespace KerbCam {
     class DebugUtil {
@@ -14,32 +16,87 @@ namespace KerbCam {
         public static void LogCameras() {
             // Display full camera list and basic information about each.
             foreach (var cam in Camera.allCameras) {
-                Log("is_current={0} enabled={1} depth={2} name={3} is_main={4} is_flight={5}",
-                    cam == Camera.current,
-                    cam.enabled,
-                    cam.depth,
-                    cam.name,
-                    cam == Camera.main,
-                    cam == FlightCamera.fetch.camera);
+                LogCamera(cam);
             }
         }
 
         public static void LogVessel(Vessel v) {
             Log("Vessel name={0}", v.name);
-            LogTransformAscestry(v.transform);
         }
 
-        public static void LogCamera(Camera c) {
-            Log("Camera id={0} name={1}", c.GetHashCode(), c.name);
-            LogTransformAscestry(c.transform);
+        public static void LogCamera(Camera cam) {
+            Log("Camera ID {0} name={1} is_current={2} is_main={3} " +
+                "enabled={4} active_self={5} active_hierarchy={6} " +
+                "depth={7} tag={8}",
+                cam.GetHashCode(),
+                cam.name,
+                cam == Camera.current,
+                cam == Camera.main,
+                cam.enabled,
+                cam.gameObject.activeSelf,
+                cam.gameObject.activeInHierarchy,
+                cam.depth,
+                cam.tag);
+        }
+
+        public static void LogCamerasTransformTree() {
+            // Root transform IDs to the root transform of that ID.
+            var trnRoots = new Dictionary<int, Transform>();
+            // Transform IDs to cameras using that transform.
+            var trnCams = new Dictionary<int, List<Camera>>();
+            foreach (Camera c in Camera.allCameras) {
+                Transform root = c.transform.root;
+                trnRoots[root.GetInstanceID()] = root;
+
+                int camTrnId = c.transform.GetInstanceID();
+                List<Camera> camList;
+                if (!trnCams.TryGetValue(camTrnId, out camList)) {
+                    trnCams[camTrnId] = camList = new List<Camera>();
+                }
+                camList.Add(c);
+            }
+
+            var result = new StringBuilder();
+            foreach (Transform root in trnRoots.Values) {
+                result.AppendLine("--------");
+                if (root.name == "_UI") continue;
+                AppendCameraTransform(result, 0, root, trnCams);
+            }
+            Debug.Log(result.ToString());
+        }
+
+        private static void AppendCameraTransform(
+            StringBuilder result, int level, Transform trn,
+            Dictionary<int, List<Camera>> trnCams) {
+
+            Component[] cmps = trn.gameObject.GetComponents<Component>();
+            string[] cmpStrs = new string[cmps.Length];
+            for (int i = 0; i < cmps.Length; i++) {
+                cmpStrs[i] = cmps[i].GetType().Name;
+            }
+
+            result.AppendFormat(
+                "{0} {1} [{2}]",
+                new string('+', level), trn.name, string.Join(", ", cmpStrs));
+            result.AppendLine();
+
+            int numChildTrns = trn.GetChildCount();
+            foreach (Transform child in trn) {
+                AppendCameraTransform(result, level + 1, child, trnCams);
+            }
+        }
+
+        public static string Format(Transform trn) {
+            return String.Format(
+                "locPos={0} locRot={1} pos={2} rot={3}",
+                trn.localPosition, trn.localRotation,
+                trn.position, trn.rotation);
         }
 
         public static void LogTransformAscestry(Transform trn) {
             int i = 0;
             for (; trn != null; trn = trn.parent, i++) {
-                Log("#{0} locPos={1} locRot={2} pos={3} rot={4}",
-                    i, trn.localPosition, trn.localRotation,
-                    trn.position, trn.rotation);
+                Log("#{0} {1}", i, Format(trn));
             }
         }
 
