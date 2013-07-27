@@ -44,6 +44,8 @@ namespace KerbCam {
             var trnRoots = new Dictionary<int, Transform>();
             // Transform IDs to cameras using that transform.
             var trnCams = new Dictionary<int, List<Camera>>();
+            // Transform IDs that are in the ancestry of cameras.
+            var trnCamAncestors = new Dictionary<int, bool>();
             foreach (Camera c in Camera.allCameras) {
                 Transform root = c.transform.root;
                 trnRoots[root.GetInstanceID()] = root;
@@ -54,20 +56,35 @@ namespace KerbCam {
                     trnCams[camTrnId] = camList = new List<Camera>();
                 }
                 camList.Add(c);
+
+                for (var trn = c.transform; trn != null; trn = trn.parent) {
+                    trnCamAncestors[trn.GetInstanceID()] = true;
+                }
             }
 
             var result = new StringBuilder();
             foreach (Transform root in trnRoots.Values) {
                 result.AppendLine("--------");
-                if (root.name == "_UI") continue;
-                AppendCameraTransform(result, 0, root, trnCams);
+                /*string skipReason = null;
+                if (object.ReferenceEquals(root.gameObject, ScreenSafeUI.fetch)) {
+                    skipReason = "ScreenSafeUI";
+                } else if (root.name == "_UI") {
+                    skipReason = "_UI";
+                }
+                if (skipReason != null) {
+                    result.AppendFormat("(skipping {0} transform tree)\n", skipReason);
+                    continue;
+                }*/
+                AppendCameraTransform(result, 0, root, trnCams, trnCamAncestors);
             }
             Debug.Log(result.ToString());
         }
 
         private static void AppendCameraTransform(
             StringBuilder result, int level, Transform trn,
-            Dictionary<int, List<Camera>> trnCams) {
+            Dictionary<int, List<Camera>> trnCams, Dictionary<int, bool> trnCamAncestors) {
+
+            bool isAncestor = trnCamAncestors.ContainsKey(trn.GetInstanceID());
 
             Component[] cmps = trn.gameObject.GetComponents<Component>();
             string[] cmpStrs = new string[cmps.Length];
@@ -75,22 +92,32 @@ namespace KerbCam {
                 cmpStrs[i] = cmps[i].GetType().Name;
             }
 
-            result.AppendFormat(
-                "{0} {1} [{2}]",
-                new string('+', level), trn.name, string.Join(", ", cmpStrs));
-            result.AppendLine();
-
-            int numChildTrns = trn.GetChildCount();
-            foreach (Transform child in trn) {
-                AppendCameraTransform(result, level + 1, child, trnCams);
+            result.Append('+', level);
+            result.AppendFormat("{0} [{1}]", trn.name, string.Join(", ", cmpStrs));
+            if (isAncestor) {
+                result.Append(' ');
+                result.Append(Format(trn));
+                result.AppendLine();
+                // Only descend into descendents of transforms that are ancestors of
+                // cameras. This logs helpful context for camera transforms, without
+                // showing excessive internal model information.
+                int numChildTrns = trn.GetChildCount();
+                foreach (Transform child in trn) {
+                    AppendCameraTransform(result, level + 1, child, trnCams, trnCamAncestors);
+                }
+                return;
             }
+            
+            if (trn.GetChildCount() > 0) {
+                result.Append(" (descendents hidden)");
+            }
+            result.AppendLine();
         }
 
         public static string Format(Transform trn) {
             return String.Format(
-                "locPos={0} locRot={1} pos={2} rot={3}",
-                trn.localPosition, trn.localRotation,
-                trn.position, trn.rotation);
+                "locPos={0} locRot={1}",
+                trn.localPosition, trn.localRotation);
         }
 
         public static void LogTransformAscestry(Transform trn) {
