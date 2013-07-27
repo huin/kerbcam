@@ -218,8 +218,8 @@ namespace KerbCam {
                     return;
                 }
 
-                Transform rotationTrn = cc.Camera.transform;
-                Transform translateTrn = rotationTrn.parent;
+                Transform rotationTrn = cc.SecondTransform;
+                Transform translateTrn = cc.FirstTransform;
 
                 Quaternion rot = Quaternion.Inverse(rotationTrn.root.localRotation) * rotationTrn.rotation;
 

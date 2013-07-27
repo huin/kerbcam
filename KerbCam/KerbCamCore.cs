@@ -76,9 +76,8 @@ namespace KerbCam {
             if (State.developerMode) {
                 // Random bits of logging used by the developer to
                 // work out whatever the heck he's doing.
-                DebugUtil.LogCameras();
+                DebugUtil.LogCamerasTransformTree();
                 DebugUtil.LogVessel(FlightGlobals.ActiveVessel);
-                DebugUtil.LogCamera(Camera.main);
             }
         }
     }
@@ -180,7 +179,9 @@ namespace KerbCam {
             ConfigNode config;
             config = ConfigNode.Load("kerbcam-paths.cfg");
             if (config == null) {
-                Debug.LogWarning("KerbCam could not load paths. This is okay they have not been saved yet.");
+                Debug.LogWarning(
+                    "KerbCam could not load paths. This is okay if " +
+                    "they have not been saved yet.");
                 return;
             }
             var newPaths = new List<SimpleCamPath>();
@@ -444,21 +445,25 @@ namespace KerbCam {
             try {
                 GUILayout.BeginVertical(); // BEGIN outer container
 
-                Vessel relVessel = State.camControl.RelativeVessel;
+                Transform relTrn = State.camControl.RelativeTrn;
 
-                if (GUILayout.Toggle(relVessel == null, "Active vessel")) {
-                    relVessel = null;
+                if (GUILayout.Toggle(relTrn == null, "Active vessel")) {
+                    relTrn = null;
                 }
                 GUILayout.BeginScrollView(vesselListScroll); // BEGIN vessel list scroller
                 GUILayout.BeginVertical(); // BEGIN vessel list
                 foreach (Vessel vessel in FlightGlobals.Vessels) {
-                    if (vessel.loaded && GUILayout.Toggle(relVessel == vessel, vessel.name)) {
-                        relVessel = vessel;
+                    bool isVesselSelected = object.ReferenceEquals(relTrn, vessel.transform);
+                    if (vessel.loaded && GUILayout.Toggle(isVesselSelected, vessel.name)) {
+                        relTrn = vessel.transform;
                     }
                 }
                 GUILayout.EndVertical(); // END vessel list
                 GUILayout.EndScrollView(); // END vessel list scroller
-                State.camControl.RelativeVessel = relVessel;
+
+                // TODO: This will need to update anything that's using the relative
+                // transform, including PathRunner and the drawn path.
+                State.camControl.RelativeTrn = relTrn;
 
                 GUILayout.BeginHorizontal(); // BEGIN lower controls
                 GUILayout.FlexibleSpace();

@@ -349,18 +349,18 @@ namespace KerbCam {
             UpdateDrawn();
         }
 
-        public void ToggleDrawn(Transform relTo) {
+        public void ToggleDrawn() {
             if (!isDrawn) {
-                StartDrawing(relTo);
+                StartDrawing();
             } else {
                 StopDrawing();
             }
         }
 
-        public void StartDrawing(Transform relTo) {
+        public void StartDrawing() {
             isDrawn = true;
             drawnPathObj = new GameObject("Path");
-            drawnPathObj.transform.parent = relTo;
+            drawnPathObj.transform.parent = State.camControl.EffectiveRelativeTrn;
             drawnPathObj.transform.localPosition = Vector3.zero;
             drawnPathObj.transform.localRotation = Quaternion.identity;
 
@@ -380,14 +380,12 @@ namespace KerbCam {
             }
         }
 
-        internal void UpdateTransform(Transform objTrns, float t) {
-            Transform objParentTrns = objTrns.parent;
-
+        internal void UpdateTransform(Transform firstTrns, Transform secondTrns, float t) {
             TransformPoint curTrnPoint = transformsCurve.Evaluate(t);
-            objParentTrns.localRotation = Quaternion.identity;
-            objParentTrns.localPosition = curTrnPoint.position;
-            objTrns.localRotation = curTrnPoint.rotation;
-            objTrns.localPosition = Vector3.zero;
+            firstTrns.localRotation = Quaternion.identity;
+            firstTrns.localPosition = curTrnPoint.position;
+            secondTrns.localRotation = curTrnPoint.rotation;
+            secondTrns.localPosition = Vector3.zero;
             Time.timeScale = curTrnPoint.timescale;
         }
 
@@ -413,7 +411,7 @@ namespace KerbCam {
 
             int i = 0;
             for (float t = transformsCurve.MinParam; i < numVerts && t < transformsCurve.MaxParam; t += 0.1f, i++) {
-                UpdateTransform(pathLookTrn, t);
+                UpdateTransform(pathPosTrn, pathLookTrn, t);
 
                 Vector3 curPos = pathLookTrn.position;
                 lines.SetPosition(i, curPos);
@@ -547,7 +545,7 @@ namespace KerbCam {
             bool shouldRun = GUILayout.Toggle(path.Runner.IsRunning, "");
             GUILayout.Label("Play");
             if (path.Runner.IsRunning != shouldRun) {
-                path.Runner.ToggleRunning(State.camControl);
+                path.Runner.ToggleRunning();
             }
 
             path.Runner.IsPaused = GUILayout.Toggle(path.Runner.IsPaused, "");
@@ -556,7 +554,7 @@ namespace KerbCam {
             bool shouldDraw = GUILayout.Toggle(path.IsDrawn, "");
             GUILayout.Label("Draw");
             if (path.IsDrawn != shouldDraw) {
-                path.ToggleDrawn(FlightGlobals.ActiveVessel.transform);
+                path.ToggleDrawn();
             }
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal(); // END buttons
@@ -652,7 +650,7 @@ namespace KerbCam {
 
             if (GUILayout.Button("View")) {
                 path.Runner.IsPaused = true;
-                path.Runner.StartRunning(State.camControl);
+                path.Runner.StartRunning();
                 path.Runner.CurrentTime = path.TimeAt(selectedKeyIndex);
             }
 

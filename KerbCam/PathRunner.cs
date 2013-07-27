@@ -4,7 +4,7 @@ using UnityEngine;
 namespace KerbCam {
     public class PathRunner : MonoBehaviour, CameraController.Client {
         // Running state variables.
-        private CameraController controller = null;
+        private bool isRunning = false;
         private bool isPaused = false;
         private float lastSeenTime;
         private float curTime = 0.0F;
@@ -29,7 +29,7 @@ namespace KerbCam {
         }
 
         public bool IsRunning {
-            get { return controller != null; }
+            get { return isRunning; }
         }
 
         /// The value of IsPaused only has an effect while running.
@@ -44,32 +44,35 @@ namespace KerbCam {
             set { curTime = value; }
         }
 
-        public void ToggleRunning(CameraController controller) {
+        public void ToggleRunning() {
             if (!IsRunning)
-                StartRunning(controller);
+                StartRunning();
             else
                 StopRunning();
         }
 
-        public void StartRunning(CameraController controller) {
-            if (IsRunning || path.Count == 0) {
+        public void StartRunning() {
+            if (isRunning || path.Count == 0) {
                 return;
             }
 
-            controller.StartControlling(this);
-            this.controller = controller;
+            State.camControl.StartControlling(this);
+            isRunning = true;
 
             lastSeenTime = Time.realtimeSinceStartup;
-            path.UpdateTransform(State.camControl.Camera.transform, curTime);
+            path.UpdateTransform(
+                State.camControl.FirstTransform,
+                State.camControl.SecondTransform,
+                curTime);
         }
 
         public void StopRunning() {
             if (!IsRunning) {
                 return;
             }
-            if (controller != null) {
-                controller.StopControlling(true);
-                controller = null;
+            if (isRunning) {
+                State.camControl.StopControlling(true);
+                isRunning = false;
             }
             isPaused = false;
             curTime = 0f;
@@ -96,7 +99,10 @@ namespace KerbCam {
                 }
                 lastSeenTime = worldTime;
 
-                path.UpdateTransform(controller.Camera.transform, curTime);
+                path.UpdateTransform(
+                    State.camControl.FirstTransform,
+                    State.camControl.SecondTransform,
+                    curTime);
                 if (!isPaused && curTime >= path.MaxTime) {
                     // Pause at the end of the path.
                     isPaused = true;
@@ -108,7 +114,7 @@ namespace KerbCam {
 
         private void HandleToggleRun() {
             try {
-                State.SelectedPath.Runner.ToggleRunning(State.camControl);
+                State.SelectedPath.Runner.ToggleRunning();
             } catch (Exception e) {
                 DebugUtil.LogException(e);
             }
@@ -147,7 +153,6 @@ namespace KerbCam {
         }
 
         void CameraController.Client.LoseController() {
-            controller = null;
             StopRunning();
         }
     }
