@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections;
+using UnityEngine;
 
 namespace KerbCam {
     public class CameraController : MonoBehaviour {
@@ -26,9 +27,18 @@ namespace KerbCam {
                 UpdateParentTransform();
 
                 if (isControlling) {
-                    FlightCamera.fetch.DeactivateUpdate();
+                    AcquireFlightCamera();
+                    // We need to re-acquire the flight camera at the end of the frame as
+                    // well (it looks like the transform parent gets reset after this
+                    // callback returns).
+                    StartCoroutine(DeferredAcquireFlightCamera());
                 }
             });
+        }
+
+        private IEnumerator DeferredAcquireFlightCamera() {
+            yield return new WaitForEndOfFrame();
+            AcquireFlightCamera();
         }
 
         /// <summary>
@@ -60,11 +70,13 @@ namespace KerbCam {
         }
 
         private void UpdateParentTransform() {
+            Transform newParent;
             if (relativeTrn == null) {
-                TransformState.MoveToParent(transform, FlightGlobals.ActiveVessel.transform);
+                newParent = FlightGlobals.ActiveVessel.transform;
             } else {
-                TransformState.MoveToParent(transform, relativeTrn);
+                newParent = relativeTrn;
             }
+            TransformState.MoveToParent(transform, newParent);
         }
 
         public bool IsControlling {
@@ -88,6 +100,10 @@ namespace KerbCam {
             // TODO: Consider being able to move InternalCamera as well.
             // Will need to update the delegate in the constructor if so.
             // CameraManager is particularly of note.
+            AcquireFlightCamera();
+        }
+
+        private void AcquireFlightCamera() {
             var fc = FlightCamera.fetch;
             fc.DeactivateUpdate();
 
@@ -101,6 +117,12 @@ namespace KerbCam {
 
             // The CameraController becomes the parent transform for the camera transforms.
             TransformState.MoveToParent(firstTrn.Transform, transform);
+        }
+
+        private void ReleaseFlightCamera() {
+            TransformState.MoveToParent(firstTrn.Transform, FlightGlobals.ActiveVessel.transform);
+            TransformState.MoveToParent(secondTrn.Transform, firstTrn.Transform);
+            FlightCamera.fetch.ActivateUpdate();
         }
 
         public void StopControlling(bool restoreCamera) {
@@ -117,9 +139,7 @@ namespace KerbCam {
             if (restoreCamera) {
                 firstTrn.Revert();
                 secondTrn.Revert();
-                TransformState.MoveToParent(firstTrn.Transform, FlightGlobals.ActiveVessel.transform);
-                TransformState.MoveToParent(secondTrn.Transform, firstTrn.Transform);
-                FlightCamera.fetch.ActivateUpdate();
+                ReleaseFlightCamera();
             }
         }
     }

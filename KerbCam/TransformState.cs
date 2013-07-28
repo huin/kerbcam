@@ -37,13 +37,9 @@ namespace KerbCam {
         /// <param name="toMove">The Transform to reparent.</param>
         /// <param name="newParent">The new parent Transform.</param>
         public static void MoveToParent(Transform toMove, Transform newParent) {
-            DebugUtil.Log("transform==null => {0}", toMove==null);
             var state = new TransformState(toMove);
-            DebugUtil.Log("transform {0} before: {1}", toMove.name, toMove.localPosition);
             toMove.parent = newParent;
-            DebugUtil.Log("transform {0} after reparent: {1}", toMove.name, toMove.localPosition);
             state.Revert();
-            DebugUtil.Log("transform {0} after local revert: {1}", toMove.name, toMove.localPosition);
         }
     }
 }

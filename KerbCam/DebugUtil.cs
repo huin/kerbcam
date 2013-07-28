@@ -13,6 +13,10 @@ namespace KerbCam {
             }
         }
 
+        public static string NameOfMaybeNull(Component c) {
+            return c == null ? "<null>" : c.name;
+        }
+
         public static void LogCameras() {
             // Display full camera list and basic information about each.
             foreach (var cam in Camera.allCameras) {
@@ -116,15 +120,17 @@ namespace KerbCam {
 
         public static string Format(Transform trn) {
             return String.Format(
-                "locPos={0} locRot={1}",
-                trn.localPosition, trn.localRotation);
+                "name={0} locPos={1} locRot={2}",
+                trn.name, trn.localPosition, trn.localRotation);
         }
 
         public static void LogTransformAscestry(Transform trn) {
+            var result = new StringBuilder();
             int i = 0;
             for (; trn != null; trn = trn.parent, i++) {
-                Log("#{0} {1}", i, Format(trn));
+                result.AppendFormat("#{0} {1}\n", i, Format(trn));
             }
+            Log(result.ToString());
         }
 
         public static void Log(string fmt, params object[] args) {
