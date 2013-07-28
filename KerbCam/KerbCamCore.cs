@@ -22,7 +22,8 @@ namespace KerbCam {
 
         private bool ShouldRun() {
             bool shouldRunNow =
-                FlightGlobals.fetch != null
+                !State.broken
+                && FlightGlobals.fetch != null
                 && FlightGlobals.ActiveVessel != null
                 && HighLogic.LoadedScene == GameScenes.FLIGHT;
 
@@ -44,13 +45,18 @@ namespace KerbCam {
             }
             initialized = true;
 
-            C.Init();
-            State.Init();
+            try {
+                C.Init();
+                State.Init();
 
-            State.keyBindings.ListenKeyUp(BoundKey.KEY_DEBUG, HandleDebug);
+                State.keyBindings.ListenKeyUp(BoundKey.KEY_DEBUG, HandleDebug);
 
-            State.LoadConfig();
-            State.LoadPaths();
+                State.LoadConfig();
+                State.LoadPaths();
+            } catch (Exception e) {
+                DebugUtil.LogException(e);
+                State.broken = true;
+            }
         }
 
         public void OnGUI() {
@@ -106,12 +112,14 @@ namespace KerbCam {
     /// </summary>
     class State {
         private static bool initialized = false;
+        public static bool broken = false;
         public static KeyBindings<BoundKey> keyBindings;
         private static SimpleCamPath selectedPath;
         public static List<SimpleCamPath> paths;
         private static int numCreatedPaths = 0;
         public static bool developerMode = false;
         public static CameraController camControl;
+        private static GameObject camControlObj;
         public static ManualCameraControl manCamControl;
         public static MainWindow mainWindow;
 
@@ -150,7 +158,10 @@ namespace KerbCam {
                 new KeyBind("log debug data (developer mode only)"));
 
             paths = new List<SimpleCamPath>();
-            camControl = new CameraController();
+            camControlObj = new GameObject("CameraController");
+            camControl = camControlObj.AddComponent<CameraController>();
+            DebugUtil.Log("camControlObj == null => {0}", camControlObj == null);
+            DebugUtil.Log("camControl == null => {0}", camControl == null);
             manCamControl = ManualCameraControl.Create();
             mainWindow = new MainWindow();
         }
@@ -461,8 +472,6 @@ namespace KerbCam {
                 GUILayout.EndVertical(); // END vessel list
                 GUILayout.EndScrollView(); // END vessel list scroller
 
-                // TODO: This will need to update anything that's using the relative
-                // transform, including PathRunner and the drawn path.
                 State.camControl.RelativeTrn = relTrn;
 
                 GUILayout.BeginHorizontal(); // BEGIN lower controls

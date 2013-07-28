@@ -1,34 +1,7 @@
 ﻿using UnityEngine;
 
 namespace KerbCam {
-    public class CameraController {
-        private struct TransformState {
-            private Transform trn;
-            private Vector3 localPosition;
-            private Quaternion localRotation;
-            private Vector3 localScale;
-
-            public TransformState(Transform trn) {
-                this.trn = trn;
-                localPosition = trn.localPosition;
-                localRotation = trn.localRotation;
-                localScale = trn.localScale;
-            }
-
-            public Transform Transform {
-                get { return trn; }
-            }
-
-            public void Revert() {
-                if (trn == null) {
-                    DebugUtil.Log("Attempted to revert a null transform");
-                    return;
-                }
-                trn.localPosition = localPosition;
-                trn.localRotation = localRotation;
-                trn.localScale = localScale;
-            }
-        }
+    public class CameraController : MonoBehaviour {
 
         public interface Client {
             /// <summary>
@@ -43,12 +16,23 @@ namespace KerbCam {
         private TransformState firstTrn;
         private TransformState secondTrn;
 
-        private GameObject camTrnObj = null;
         private Client curClient = null;
         private Transform relativeTrn = null;
 
+        public CameraController() {
+            UpdateParentTransform();
+            GameEvents.onVesselChange.Add(delegate(Vessel v) {
+                // Vessel selection changed, update parent transform if necessary.
+                UpdateParentTransform();
+
+                if (isControlling) {
+                    FlightCamera.fetch.DeactivateUpdate();
+                }
+            });
+        }
+
         /// <summary>
-        /// The "outer"/"first" camera transform.
+        /// The "outer"/"first" camera transform. This is the parent of SecondTransform.
         /// </summary>
         public Transform FirstTransform {
             get { return firstTrn.Transform; }
@@ -68,17 +52,18 @@ namespace KerbCam {
         public Transform RelativeTrn {
             get { return relativeTrn; }
             set {
-                if (relativeTrn != value) {
+                if (!object.ReferenceEquals(relativeTrn, value)) {
                     relativeTrn = value;
                     UpdateParentTransform();
                 }
             }
         }
 
-        public Transform EffectiveRelativeTrn {
-            get {
-                if (relativeTrn == null) return FlightGlobals.ActiveVessel.transform;
-                else return relativeTrn;
+        private void UpdateParentTransform() {
+            if (relativeTrn == null) {
+                TransformState.MoveToParent(transform, FlightGlobals.ActiveVessel.transform);
+            } else {
+                TransformState.MoveToParent(transform, relativeTrn);
             }
         }
 
@@ -101,6 +86,7 @@ namespace KerbCam {
             isControlling = true;
 
             // TODO: Consider being able to move InternalCamera as well.
+            // Will need to update the delegate in the constructor if so.
             // CameraManager is particularly of note.
             var fc = FlightCamera.fetch;
             fc.DeactivateUpdate();
@@ -112,12 +98,9 @@ namespace KerbCam {
             firstTrn = new TransformState(fc.transform.parent);
             // ... and the transform is that for the FlightCamera itself.
             secondTrn = new TransformState(fc.transform);
-        }
 
-        private void UpdateParentTransform() {
-            if (camTrnObj != null) {
-                camTrnObj.transform.parent = EffectiveRelativeTrn.transform;
-            }
+            // The CameraController becomes the parent transform for the camera transforms.
+            TransformState.MoveToParent(firstTrn.Transform, transform);
         }
 
         public void StopControlling(bool restoreCamera) {
@@ -134,8 +117,8 @@ namespace KerbCam {
             if (restoreCamera) {
                 firstTrn.Revert();
                 secondTrn.Revert();
-                firstTrn.Transform.parent = FlightGlobals.ActiveVessel.transform;
-                secondTrn.Transform.parent = firstTrn.Transform;
+                TransformState.MoveToParent(firstTrn.Transform, FlightGlobals.ActiveVessel.transform);
+                TransformState.MoveToParent(secondTrn.Transform, firstTrn.Transform);
                 FlightCamera.fetch.ActivateUpdate();
             }
         }

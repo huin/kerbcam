@@ -49,10 +49,7 @@
     <Compile Include="GUIHelper.cs" />
     <Compile Include="Interpolator.cs" />
     <Compile Include="SplineUtil.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="System.dll" />
-    <Content Include="UnityEngine.dll" />
+    <Compile Include="TransformState.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Assembly-CSharp, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">

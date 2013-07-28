@@ -359,12 +359,14 @@ namespace KerbCam {
 
         public void StartDrawing() {
             isDrawn = true;
-            drawnPathObj = new GameObject("Path");
-            drawnPathObj.transform.parent = State.camControl.EffectiveRelativeTrn;
+            drawnPathObj = new GameObject("KerbCam drawn path");
+            drawnPathObj.transform.parent = State.camControl.transform;
             drawnPathObj.transform.localPosition = Vector3.zero;
             drawnPathObj.transform.localRotation = Quaternion.identity;
+            drawnPathObj.transform.localScale = Vector3.one;
 
             var lines = (LineRenderer)drawnPathObj.AddComponent("LineRenderer");
+            lines.material = new Material(Shader.Find("Particles/Additive"));
             lines.useWorldSpace = false;
             lines.SetColors(Color.white, Color.white);
             lines.SetWidth(0.2f, 0.2f);

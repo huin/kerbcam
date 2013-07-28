@@ -7,7 +7,7 @@ namespace KerbCam {
     class DebugUtil {
         public static void LogException(Exception e) {
             try {
-                Debug.LogError(e.ToString() + "\n" + e.StackTrace);
+                Debug.LogError(e.ToString());
             } catch (Exception) {
                 Debug.LogError("KerbCam failed to log an exception");
             }
