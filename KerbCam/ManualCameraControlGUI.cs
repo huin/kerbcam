@@ -129,7 +129,7 @@ namespace KerbCam {
             GUILayout.BeginHorizontal(); // BEGIN side-by-side
 
             GUILayout.BeginVertical();
-            mc.translateSliderPosition = GUILayout.HorizontalSlider(mc.translateSliderPosition, -3f, 3f);
+            mc.translateSliderPosition = GUILayout.HorizontalSlider(mc.translateSliderPosition, -3f, 4f);
             trnButtons.DoGUI();
             GUILayout.EndVertical();
             GUILayout.BeginVertical();

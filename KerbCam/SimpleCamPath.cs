@@ -643,10 +643,9 @@ namespace KerbCam {
             }
 
             if (GUILayout.Button("Set")) {
-                // TODO: Consider what to use as the relative transform in future.
                 trnPoint = SimpleCamPath.MakeTransformPoint(
                     Camera.main.transform,
-                    FlightGlobals.ActiveVessel.transform,
+                    State.camControl.transform,
                     trnPoint.timescale);
                 trnPointChanged = true;
             }

@@ -88,6 +88,8 @@ namespace KerbCam {
             set {
                 if (!object.ReferenceEquals(relativeTrn, value)) {
                     relativeTrn = value;
+                    DebugUtil.Log("transform: {0}", DebugUtil.Format(transform));
+                    DebugUtil.Log("new rel transform: {0}", DebugUtil.Format(relativeTrn));
                     UpdateParentTransform();
                 }
             }

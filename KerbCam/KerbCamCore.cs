@@ -117,6 +117,13 @@ namespace KerbCam {
     class State {
         private static bool initialized = false;
         public static bool broken = false;
+
+        /// <summary>
+        /// kerbCamObj is a general GameObject to attach global scripts to.
+        /// </summary>
+        private static GameObject kerbCamObj;
+        public static ObjectPicker objectPicker;
+
         public static KeyBindings<BoundKey> keyBindings;
         private static SimpleCamPath selectedPath;
         public static List<SimpleCamPath> paths;
@@ -126,12 +133,17 @@ namespace KerbCam {
         private static GameObject camControlObj;
         public static ManualCameraControl manCamControl;
         public static MainWindow mainWindow;
+        public static GameObject relativeObject = null;
 
         public static void Init() {
             if (initialized) {
                 return;
             }
             initialized = true;
+
+            kerbCamObj = new GameObject("KerbCam");
+            GameObject.DontDestroyOnLoad(kerbCamObj);
+            objectPicker = kerbCamObj.AddComponent<ObjectPicker>();
 
             keyBindings = new KeyBindings<BoundKey>();
 
@@ -273,7 +285,7 @@ namespace KerbCam {
         private SimpleCamPathEditor pathEditor = null;
         private Vector2 pathListScroll = new Vector2();
         private WindowResizer resizer;
-        private VesselSelectionWindow vesselSelectionWindow;
+        private ObjectSelectionWindow vesselSelectionWindow;
         private HelpWindow helpWindow;
         private ConfigWindow configWindow;
         private bool cameraControlsOpen = false;
@@ -284,7 +296,7 @@ namespace KerbCam {
             resizer = new WindowResizer(
                 new Rect(50, 50, 250, 250),
                 new Vector2(GetGuiMinHeight(), GetGuiMinWidth()));
-            vesselSelectionWindow = new VesselSelectionWindow();
+            vesselSelectionWindow = new ObjectSelectionWindow();
             helpWindow = new HelpWindow(assembly);
             cameraGui = new ManualCameraControlGUI();
             configWindow = new ConfigWindow();
@@ -439,11 +451,24 @@ namespace KerbCam {
         }
     }
 
-    class VesselSelectionWindow : BaseWindow {
-        private Vector2 vesselListScroll = new Vector2();
+    class ObjectSelectionWindow : BaseWindow {
+        private Vector2 hierarchyListScroll = new Vector2();
         private WindowResizer resizer;
+        private bool picking = false;
 
-        public VesselSelectionWindow() {
+        private bool Picking {
+            get { return picking; }
+            set {
+                if (value == picking) {
+                    return;
+                }
+                picking = value;
+                if (value) State.objectPicker.AddObjectPicked(ObjectPicked);
+                else State.objectPicker.RemoveObjectPicked(ObjectPicked);
+            }
+        }
+
+        public ObjectSelectionWindow() {
             resizer = new WindowResizer(
                 new Rect(50, 250, 250, 200),
                 new Vector2(200, 170));
@@ -453,7 +478,7 @@ namespace KerbCam {
             GUI.skin = HighLogic.Skin;
             resizer.Position = GUILayout.Window(
                 windowId, resizer.Position, DoGUI,
-                "Choose vessel",
+                "Pick Object",
                 resizer.LayoutMinWidth(),
                 resizer.LayoutMinHeight());
         }
@@ -467,16 +492,23 @@ namespace KerbCam {
                 if (GUILayout.Toggle(relTrn == null, "Active vessel")) {
                     relTrn = null;
                 }
-                GUILayout.BeginScrollView(vesselListScroll); // BEGIN vessel list scroller
-                GUILayout.BeginVertical(); // BEGIN vessel list
-                foreach (Vessel vessel in FlightGlobals.Vessels) {
-                    bool isVesselSelected = object.ReferenceEquals(relTrn, vessel.transform);
-                    if (vessel.loaded && GUILayout.Toggle(isVesselSelected, vessel.name)) {
-                        relTrn = vessel.transform;
-                    }
+                if (GUILayout.Button(Picking ? "Cancel Pick" : "Pick Object")) {
+                    Picking = !Picking;
                 }
-                GUILayout.EndVertical(); // END vessel list
-                GUILayout.EndScrollView(); // END vessel list scroller
+                if (State.relativeObject != null) {
+                    GUILayout.Label("Hierarchy:");
+                    hierarchyListScroll = GUILayout.BeginScrollView(hierarchyListScroll); // BEGIN vessel list scroller
+                    GUILayout.BeginVertical(); // BEGIN vessel list
+                    for (Transform trn = State.relativeObject.transform; trn != null; trn = trn.parent) {
+                        if (GUILayout.Toggle(object.ReferenceEquals(trn, relTrn), trn.name)) {
+                            relTrn = trn;
+                        }
+                    }
+                    GUILayout.EndVertical(); // END vessel list
+                    GUILayout.EndScrollView(); // END vessel list scroller
+                } else {
+                    GUILayout.FlexibleSpace();
+                }
 
                 State.camControl.RelativeTrn = relTrn;
 
@@ -492,6 +524,12 @@ namespace KerbCam {
             } catch (Exception e) {
                 DebugUtil.LogException(e);
             }
+        }
+
+        private void ObjectPicked(Collider c) {
+            Picking = false;
+            State.relativeObject = c.gameObject;
+            State.camControl.RelativeTrn = State.relativeObject.transform;
         }
     }
 

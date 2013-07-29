@@ -119,9 +119,13 @@ namespace KerbCam {
         }
 
         public static string Format(Transform trn) {
-            return String.Format(
-                "name={0} locPos={1} locRot={2}",
-                trn.name, trn.localPosition, trn.localRotation);
+            if (trn == null) {
+                return "<null>";
+            } else {
+                return String.Format(
+                    "name={0} locPos={1} locRot={2}",
+                    trn.name, trn.localPosition, trn.localRotation);
+            }
         }
 
         public static void LogTransformAscestry(Transform trn) {

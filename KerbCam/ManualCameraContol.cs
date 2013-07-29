@@ -60,7 +60,7 @@ namespace KerbCam {
             FireState(oldState);
         }
 
-        internal abstract void AddMove(Quaternion rot, Transform translateTrn, float translationFactor,
+        internal abstract void AddMove(Transform translateTrn, float translationFactor,
             Transform rotationTrn, float rotationFactor);
     }
 
@@ -74,11 +74,11 @@ namespace KerbCam {
             this.direction = direction;
         }
 
-        internal override void AddMove(Quaternion rot, Transform translateTrn, float translationFactor,
+        internal override void AddMove(Transform translateTrn, float translationFactor,
             Transform rotationTrn, float rotationFactor) {
 
             if (State) {
-                translateTrn.localPosition += rot * direction * translationFactor;
+                translateTrn.position += rotationTrn.rotation * direction * translationFactor;
             }
         }
     }
@@ -93,7 +93,7 @@ namespace KerbCam {
             this.axis = axis;
         }
 
-        internal override void AddMove(Quaternion rot, Transform translateTrn, float translationFactor,
+        internal override void AddMove(Transform translateTrn, float translationFactor,
             Transform rotationTrn, float rotationFactor) {
 
             if (State) {
@@ -221,15 +221,13 @@ namespace KerbCam {
                 Transform rotationTrn = cc.SecondTransform;
                 Transform translateTrn = cc.FirstTransform;
 
-                Quaternion rot = Quaternion.Inverse(rotationTrn.root.localRotation) * rotationTrn.rotation;
-
                 float deltaTime = DeltaTime();
                 float trnFactor = TranslationFactor(deltaTime);
                 float rotFactor = RotationFactor(deltaTime);
 
-                foreach (var move in moves) {
+                foreach (ManualMove move in moves) {
                     if (move.State) {
-                        move.AddMove(rot, translateTrn, trnFactor, rotationTrn, rotFactor);
+                        move.AddMove(translateTrn, trnFactor, rotationTrn, rotFactor);
                     }
                 }
             } catch (Exception e) {

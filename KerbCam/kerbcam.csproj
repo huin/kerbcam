@@ -41,6 +41,7 @@
     <Compile Include="ConfigWindow.cs" />
     <Compile Include="KeyBind.cs" />
     <Compile Include="ManualCameraContol.cs" />
+    <Compile Include="ObjectPicker.cs" />
     <Compile Include="PathRunner.cs" />
     <Compile Include="DebugUtil.cs" />
     <Compile Include="QuatUtil.cs" />
