@@ -59,6 +59,10 @@ namespace KerbCam {
             }
         }
 
+        public void OnDestroy() {
+            Debug.LogWarning("KerbCam was destroyed");
+        }
+
         public void OnGUI() {
             try {
                 if (!ShouldRun()) {
@@ -158,10 +162,9 @@ namespace KerbCam {
                 new KeyBind("log debug data (developer mode only)"));
 
             paths = new List<SimpleCamPath>();
-            camControlObj = new GameObject("CameraController");
+            camControlObj = new GameObject("KerbCam.CameraController");
+            UnityEngine.Object.DontDestroyOnLoad(camControlObj);
             camControl = camControlObj.AddComponent<CameraController>();
-            DebugUtil.Log("camControlObj == null => {0}", camControlObj == null);
-            DebugUtil.Log("camControl == null => {0}", camControl == null);
             manCamControl = ManualCameraControl.Create();
             mainWindow = new MainWindow();
         }
@@ -237,7 +240,7 @@ namespace KerbCam {
                 if (selectedPath != null) {
                     selectedPath.Runner.StopRunning();
                     selectedPath.StopDrawing();
-                    camControl.StopControlling(true);
+                    camControl.StopControlling();
                     selectedPath.Runner.enabled = false;
                 }
                 selectedPath = value;
@@ -255,8 +258,11 @@ namespace KerbCam {
             if (!initialized) {
                 return;
             }
-            camControl.StopControlling(false);
-            SelectedPath = null;
+            camControl.StopControlling();
+            if (SelectedPath != null) {
+                SelectedPath.StopDrawing();
+                SelectedPath = null;
+            }
             mainWindow.HideWindow();
         }
     }

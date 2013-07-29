@@ -183,7 +183,7 @@ namespace KerbCam {
         }
 
         public void LoseControl() {
-            State.camControl.StopControlling(true);
+            State.camControl.StopControlling();
             enabled = false;
         }
 

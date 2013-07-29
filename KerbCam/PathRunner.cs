@@ -71,7 +71,7 @@ namespace KerbCam {
                 return;
             }
             if (isRunning) {
-                State.camControl.StopControlling(true);
+                State.camControl.StopControlling();
                 isRunning = false;
             }
             isPaused = false;

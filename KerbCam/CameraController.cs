@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using UnityEngine;
 
 namespace KerbCam {
@@ -20,18 +21,37 @@ namespace KerbCam {
         private Client curClient = null;
         private Transform relativeTrn = null;
 
+        public void OnDestroy() {
+            Debug.LogWarning("KerbCam.CameraController was destroyed");
+        }
+
         public CameraController() {
             UpdateParentTransform();
-            GameEvents.onVesselChange.Add(delegate(Vessel v) {
-                // Vessel selection changed, update parent transform if necessary.
-                UpdateParentTransform();
 
-                if (isControlling) {
+            // TODO: See if we can retain camera position if we're relative to a vessel that is destroyed.
+            GameEvents.onGameSceneLoadRequested.Add(delegate(GameScenes s) {
+                try {
+                    DetachFromHierarchy();
+                } catch (Exception e) {
+                    DebugUtil.LogException(e);
+                }
+            });
+            GameEvents.onVesselChange.Add(delegate(Vessel v) {
+                try {
+                    if (!isControlling) {
+                        return;
+                    }
+
+                    // Vessel selection changed, update parent transform if necessary.
+                    UpdateParentTransform();
+
                     AcquireFlightCamera();
                     // We need to re-acquire the flight camera at the end of the frame as
                     // well (it looks like the transform parent gets reset after this
                     // callback returns).
                     StartCoroutine(DeferredAcquireFlightCamera());
+                } catch (Exception e) {
+                    DebugUtil.LogException(e);
                 }
             });
         }
@@ -39,6 +59,10 @@ namespace KerbCam {
         private IEnumerator DeferredAcquireFlightCamera() {
             yield return new WaitForEndOfFrame();
             AcquireFlightCamera();
+        }
+
+        private void DetachFromHierarchy() {
+            TransformState.MoveToParent(transform, null);
         }
 
         /// <summary>
@@ -72,11 +96,18 @@ namespace KerbCam {
         private void UpdateParentTransform() {
             Transform newParent;
             if (relativeTrn == null) {
-                newParent = FlightGlobals.ActiveVessel.transform;
+                if (FlightGlobals.ActiveVessel == null) {
+                    newParent = null;
+                } else {
+                    newParent = FlightGlobals.ActiveVessel.transform;
+                }
             } else {
                 newParent = relativeTrn;
             }
             TransformState.MoveToParent(transform, newParent);
+            transform.localPosition = Vector3.zero;
+            transform.localRotation = Quaternion.identity;
+            transform.localScale = Vector3.one;
         }
 
         public bool IsControlling {
@@ -101,6 +132,8 @@ namespace KerbCam {
             // Will need to update the delegate in the constructor if so.
             // CameraManager is particularly of note.
             AcquireFlightCamera();
+
+            UpdateParentTransform();
         }
 
         private void AcquireFlightCamera() {
@@ -120,12 +153,14 @@ namespace KerbCam {
         }
 
         private void ReleaseFlightCamera() {
+            firstTrn.Revert();
+            secondTrn.Revert();
             TransformState.MoveToParent(firstTrn.Transform, FlightGlobals.ActiveVessel.transform);
             TransformState.MoveToParent(secondTrn.Transform, firstTrn.Transform);
             FlightCamera.fetch.ActivateUpdate();
         }
 
-        public void StopControlling(bool restoreCamera) {
+        public void StopControlling() {
             if (!isControlling) {
                 return;
             }
@@ -136,11 +171,7 @@ namespace KerbCam {
                 curClient = null;
             }
 
-            if (restoreCamera) {
-                firstTrn.Revert();
-                secondTrn.Revert();
-                ReleaseFlightCamera();
-            }
+            ReleaseFlightCamera();
         }
     }
 }

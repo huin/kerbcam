@@ -359,7 +359,7 @@ namespace KerbCam {
 
         public void StartDrawing() {
             isDrawn = true;
-            drawnPathObj = new GameObject("KerbCam drawn path");
+            drawnPathObj = new GameObject("KerbCam.SimpleCamPath: drawn path");
             drawnPathObj.transform.parent = State.camControl.transform;
             drawnPathObj.transform.localPosition = Vector3.zero;
             drawnPathObj.transform.localRotation = Quaternion.identity;
