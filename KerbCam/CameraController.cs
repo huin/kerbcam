@@ -28,6 +28,11 @@ namespace KerbCam {
         public CameraController() {
             UpdateTransformReferences();
 
+            // TODO: Consider how to schedule reacquisition of the flight camera when
+            // switching to the flight view. E.g when switching map view -> flight view,
+            // the flight camera updates are reactivated, which makes the camera jerk
+            // around while KerbCam is in control.
+
             // TODO: See if we can retain camera position if we're relative to a vessel that is destroyed.
             GameEvents.onGameSceneLoadRequested.Add(delegate(GameScenes s) {
                 try {
