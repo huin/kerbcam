@@ -34,6 +34,9 @@ namespace KerbCam {
                     UpdateTransformReferences();
                     // Put the camera back where it was and stop meddling.
                     StopControlling();
+                    // Remove the CameraController from the hierarchy,
+                    // otherwise it'll be destroyed.
+                    transform.parent = null;
                 } catch (Exception e) {
                     DebugUtil.LogException(e);
                 }
