@@ -43,10 +43,6 @@ namespace KerbCam {
             });
             GameEvents.onVesselChange.Add(delegate(Vessel v) {
                 try {
-                    if (!isControlling) {
-                        return;
-                    }
-
                     // Vessel selection changed, update references as necessary.
                     UpdateTransformReferences();
 
