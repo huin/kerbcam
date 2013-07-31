@@ -9,13 +9,24 @@ namespace KerbCam {
 
         public TransformState(Transform trn) {
             this.trn = trn;
-            localPosition = trn.localPosition;
-            localRotation = trn.localRotation;
-            localScale = trn.localScale;
+            localPosition = Vector3.zero;
+            localRotation = Quaternion.identity;
+            localScale = Vector3.one;
+            Store();
         }
 
         public Transform Transform {
             get { return trn; }
+        }
+
+        public void Store() {
+            if (trn == null) {
+                DebugUtil.Log("Attempted to store a null transform");
+                return;
+            }
+            localPosition = trn.localPosition;
+            localRotation = trn.localRotation;
+            localScale = trn.localScale;
         }
 
         public void Revert() {
