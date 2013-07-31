@@ -17,30 +17,8 @@ namespace KerbCam {
             return c == null ? "<null>" : c.name;
         }
 
-        public static void LogCameras() {
-            // Display full camera list and basic information about each.
-            foreach (var cam in Camera.allCameras) {
-                LogCamera(cam);
-            }
-        }
-
         public static void LogVessel(Vessel v) {
             Log("Vessel name={0}", v.name);
-        }
-
-        public static void LogCamera(Camera cam) {
-            Log("Camera ID {0} name={1} is_current={2} is_main={3} " +
-                "enabled={4} active_self={5} active_hierarchy={6} " +
-                "depth={7} tag={8}",
-                cam.GetHashCode(),
-                cam.name,
-                cam == Camera.current,
-                cam == Camera.main,
-                cam.enabled,
-                cam.gameObject.activeSelf,
-                cam.gameObject.activeInHierarchy,
-                cam.depth,
-                cam.tag);
         }
 
         public static void LogCamerasTransformTree() {
