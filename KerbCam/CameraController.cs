@@ -26,43 +26,45 @@ namespace KerbCam {
         }
 
         public CameraController() {
-            UpdateParentTransform();
+            UpdateTransformReferences();
+
+            // TODO: Consider how to schedule reacquisition of the flight camera when
+            // switching to the flight view. E.g when switching map view -> flight view,
+            // the flight camera updates are reactivated, which makes the camera jerk
+            // around while KerbCam is in control.
 
             // TODO: See if we can retain camera position if we're relative to a vessel that is destroyed.
             GameEvents.onGameSceneLoadRequested.Add(delegate(GameScenes s) {
                 try {
-                    DetachFromHierarchy();
+                    UpdateTransformReferences();
+                    // Put the camera back where it was and stop meddling.
+                    StopControlling();
+                    // Remove the CameraController from the hierarchy,
+                    // otherwise it'll be destroyed.
+                    transform.parent = null;
                 } catch (Exception e) {
                     DebugUtil.LogException(e);
                 }
             });
             GameEvents.onVesselChange.Add(delegate(Vessel v) {
                 try {
-                    if (!isControlling) {
-                        return;
-                    }
+                    // Vessel selection changed, update references as necessary.
+                    UpdateTransformReferences();
 
-                    // Vessel selection changed, update parent transform if necessary.
-                    UpdateParentTransform();
-
-                    AcquireFlightCamera();
+                    ReacquireFlightCamera();
                     // We need to re-acquire the flight camera at the end of the frame as
                     // well (it looks like the transform parent gets reset after this
                     // callback returns).
-                    StartCoroutine(DeferredAcquireFlightCamera());
+                    StartCoroutine(DeferredReacquireFlightCamera());
                 } catch (Exception e) {
                     DebugUtil.LogException(e);
                 }
             });
         }
 
-        private IEnumerator DeferredAcquireFlightCamera() {
+        private IEnumerator DeferredReacquireFlightCamera() {
             yield return new WaitForEndOfFrame();
-            AcquireFlightCamera();
-        }
-
-        private void DetachFromHierarchy() {
-            TransformState.MoveToParent(transform, null);
+            ReacquireFlightCamera();
         }
 
         /// <summary>
@@ -88,14 +90,15 @@ namespace KerbCam {
             set {
                 if (!object.ReferenceEquals(relativeTrn, value)) {
                     relativeTrn = value;
-                    DebugUtil.Log("transform: {0}", DebugUtil.Format(transform));
-                    DebugUtil.Log("new rel transform: {0}", DebugUtil.Format(relativeTrn));
-                    UpdateParentTransform();
+                    UpdateTransformReferences();
                 }
             }
         }
 
-        private void UpdateParentTransform() {
+        /// <summary>
+        /// Updates references to Transform objects that we're interested in.
+        /// </summary>
+        private void UpdateTransformReferences() {
             Transform newParent;
             if (relativeTrn == null) {
                 if (FlightGlobals.ActiveVessel == null) {
@@ -110,67 +113,82 @@ namespace KerbCam {
             transform.localPosition = Vector3.zero;
             transform.localRotation = Quaternion.identity;
             transform.localScale = Vector3.one;
+
+            // For FlightCamera, the second transform is that for the FlightCamera itself.
+            secondTrn = new TransformState(FlightCamera.fetch.transform);
+            // ... and the transform parent is the "main camera pivot".
+            firstTrn = new TransformState(secondTrn.Transform.parent);
         }
 
         public bool IsControlling {
             get { return isControlling; }
         }
 
-        public void StartControlling(Client client) {
-            if (client == curClient) {
-                return;
-            }
-            if (curClient != null) {
-                curClient.LoseController();
-            }
-
-            curClient = client;
+        private void AcquireFlightCamera() {
             if (isControlling) {
                 return;
             }
             isControlling = true;
-
-            // TODO: Consider being able to move InternalCamera as well.
-            // Will need to update the delegate in the constructor if so.
-            // CameraManager is particularly of note.
-            AcquireFlightCamera();
-
-            UpdateParentTransform();
+            ReacquireFlightCamera();
         }
 
-        private void AcquireFlightCamera() {
-            var fc = FlightCamera.fetch;
-            fc.DeactivateUpdate();
+        private void ReacquireFlightCamera() {
+            if (!isControlling) {
+                return;
+            }
 
-            // Acquire the first and second transforms, saving their start for when we
-            // stop controlling.
+            FlightCamera.fetch.DeactivateUpdate();
 
-            // For FlightCamera, the transform parent is the "main camera pivot".
-            firstTrn = new TransformState(fc.transform.parent);
-            // ... and the transform is that for the FlightCamera itself.
-            secondTrn = new TransformState(fc.transform);
+            // Store the first and second transform states, for when we release the camera.
+            firstTrn.Store();
+            secondTrn.Store();
 
             // The CameraController becomes the parent transform for the camera transforms.
             TransformState.MoveToParent(firstTrn.Transform, transform);
         }
 
         private void ReleaseFlightCamera() {
-            firstTrn.Revert();
-            secondTrn.Revert();
-            TransformState.MoveToParent(firstTrn.Transform, FlightGlobals.ActiveVessel.transform);
-            TransformState.MoveToParent(secondTrn.Transform, firstTrn.Transform);
-            FlightCamera.fetch.ActivateUpdate();
-        }
-
-        public void StopControlling() {
             if (!isControlling) {
                 return;
             }
             isControlling = false;
 
+            // Restore parentage of first and second transforms. This mutates their state
+            // to retain their current position, so revert must be *after* this.
+            firstTrn.Transform.parent = (FlightGlobals.ActiveVessel == null ?
+                null : FlightGlobals.ActiveVessel.transform);
+            secondTrn.Transform.parent = firstTrn.Transform; // Probably hasn't changed anyway.
+
+            firstTrn.Revert();
+            secondTrn.Revert();
+
+            FlightCamera.fetch.ActivateUpdate();
+        }
+
+        private void LoseClient() {
+            Client c = curClient;
+            // Prevent infinite recursion in case the client calls StartControlling StopControlling
+            // again.
+            curClient = null;
+            c.LoseController();
+        }
+
+        public void StartControlling(Client client) {
+            if (curClient != null && client != curClient) {
+                LoseClient();
+            }
+
+            curClient = client;
+
+            // TODO: Consider being able to move InternalCamera as well.
+            // Will need to update the delegate in the constructor if so.
+            // CameraManager is particularly of note.
+            AcquireFlightCamera();
+        }
+
+        public void StopControlling() {
             if (curClient != null) {
-                curClient.LoseController();
-                curClient = null;
+                LoseClient();
             }
 
             ReleaseFlightCamera();

@@ -575,8 +575,8 @@ namespace KerbCam {
             // Create key at the end.
             if (GUILayout.Button("New key")) {
                 path.AddKeyToEnd(
-                    Camera.main.transform,
-                    Camera.main.transform.root);
+                    State.camControl.SecondTransform,
+                    State.camControl.transform);
             }
             path.ScaleTime = GUILayout.Toggle(path.ScaleTime, "");
             GUILayout.Label("Timescale");
@@ -644,7 +644,7 @@ namespace KerbCam {
 
             if (GUILayout.Button("Set")) {
                 trnPoint = SimpleCamPath.MakeTransformPoint(
-                    Camera.main.transform,
+                    State.camControl.SecondTransform,
                     State.camControl.transform,
                     trnPoint.timescale);
                 trnPointChanged = true;
