@@ -651,9 +651,12 @@ namespace KerbCam {
             }
 
             if (GUILayout.Button("View")) {
-                path.Runner.IsPaused = true;
-                path.Runner.StartRunning();
-                path.Runner.CurrentTime = path.TimeAt(selectedKeyIndex);
+                path.Runner.StopRunning();
+                State.manCamControl.TakeControl();
+                path.UpdateTransform(
+                    State.camControl.FirstTransform,
+                    State.camControl.SecondTransform,
+                    path.TimeAt(selectedKeyIndex));
             }
 
             if (GUILayout.Button("Remove", C.DeleteButtonStyle)) {
