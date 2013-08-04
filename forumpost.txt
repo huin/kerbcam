@@ -1,0 +1,82 @@
+[size=+3][url=http://kerbalspaceport.com/kerbcam/]KerbCam[/url][/size]
+
+[url=https://github.com/huin/kerbcam]Source code[/url]
+[url=https://github.com/huin/kerbcam/issues]Issues/feature requests[/url]
+[url=https://docs.google.com/document/d/1LHei8_zScAf6js7b0ZAX1v6AMfuBBrZvkcWjGds4gbo/pub]KerbCam guidebook on Google Docs[/url]
+
+[SIZE=1](recreated this post from Google cache after the forum restore - note that v0.5 was released just before the forums and Spaceport finally collapsed)[/SIZE]
+
+This is a tool for those video makers who want just a bit more camera movement and orientation control.
+
+[b]Features:[/b]
+[list]
+[*] Keyed pathing and playback. Create and edit keys, each of which controls the orientation and position of the camera relative to the spacecraft at a given time on the path. Path playback attempts to smoothly interpolate from one point to the next.
+[*] 6-degrees-of-freedom camera controller. No longer be limited to camera positions that are simple rotations around the craft.
+[*] Path recording (and playback) and camera movement while paused. This is actually an accidental feature, but one that is very handy for preparatory recording of a path or taking a screenshot while a lot of action is going on. (suggest creating and selecting the new path before pausing to workaround a glitch for now). This should also allow for cool "bullet-time" like effects (albeit with the game paused rather than slowed down).
+[*] Keyframed linearly interpolated time slowdown/pausing. (bullet time effect)
+[/list]
+Make more videos, with greater freedom than you ever had before.
+
+Known to work with KSP 0.21.1.
+
+[b]Known issues:[/b] (be careful of these, they can break things)
+[list]
+[*] When switching from map view to flight view while KerbCam is in control of the camera, the camera will jerk around a lot. The workaround is to turn off camera control and then back on (unfortunately there isn't a game event for view changes, so this might have to be fixed by polling the camera manager).
+[*] Reports of this ripping camera attachment parts from a ship. I haven't been able to reproduce this yet and haven't heard about it in [i]ages[/i]. My best guess at a workaround if it does happen would be to not start use KerbCam to control the camera or start playback whilst viewing from a fixed camera. Do inform me if you can reliably reproduce this problem and how you did it.
+[/list]
+
+2013/07/31 - version v0.11 released.
+[list]
+[*]Fixes bug with switching view breaking creation of path keys.
+[/list]
+2013/07/29 - version v0.10 released.
+[list]
+[*]Fixes the scene change/staging problem.
+[/list]
+2013/07/28 - version v0.9 released.
+[list]
+[*]Fixes for the "Relative to" feature.
+[*]Also fixes the drawn-path to move with the relative-to, and change its colour to white, which it always should have been.
+[/list]
+2013/07/27 - version v0.8 released.
+[list]
+[*]Fix to work with KSP 0.21.1. (This also changes the code based on a better understanding of how camera transformations fit into the scene, this creates a slightly better codebase to work with)
+[/list]
+2013/05/24 - version v0.7.1 released. (no code changes)
+[list]
+[*]Rearrange files inside zipfile to match new KSP v0.20 mod structure.
+[/list]
+2013/05/02 - version v0.7 released. (minor bugfix only)
+[list]
+[*]Minor bug fix regarding GUI controls sizing.
+[/list]
+2013/05/02 - version v0.6 released.
+[list]
+[*]Camera can move relative to vessels other than the active one.
+[/list]
+2013/04/13 - version v0.5 released.
+[list]
+[*]Optional timescaling (i.e slow-motion), variable by key-frame.
+[*]Keybindings are now configurable.
+[*]Additional keybindings for the 6DoF camera. (none are set by default to avoid KerbCam making a land grab for too many keybindings that other mods might use, but I suggest binding the keypad if anything)
+[*]Some GUI tidyup.
+[/list]
+2013/03/13 - version v0.4 released.
+[list]
+[*] Fix bug with viewing coincident path keys (which would break the rendering).
+[/list]
+2013/03/10 - version v0.3 released.
+[list]
+[*] Fix bug when loading from quicksave or similar.
+[/list]
+2013/03/10 - version v0.2 released.
+[list]
+[*] Camera control that places the camera with 6 degrees of freedom.
+[*] Playback time control slider, selects a point in the playback to start from, or jump to.
+[*] Internal refactoring.
+[/list]
+2013/03/03 - version v0.1 released.
+[list]
+[*] First release of KerbCam.
+[*] Basic pathing support.
+[/list]
