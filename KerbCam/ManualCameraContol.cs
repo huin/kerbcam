@@ -214,20 +214,14 @@ namespace KerbCam {
                 // was controlling the camera.
                 cc.StartControlling(this);
 
-                if (!cc.IsControlling) {
-                    return;
-                }
-
-                Transform rotationTrn = cc.SecondTransform;
-                Transform translateTrn = cc.FirstTransform;
-
                 float deltaTime = DeltaTime();
                 float trnFactor = TranslationFactor(deltaTime);
                 float rotFactor = RotationFactor(deltaTime);
 
                 foreach (ManualMove move in moves) {
                     if (move.State) {
-                        move.AddMove(translateTrn, trnFactor, rotationTrn, rotFactor);
+                        move.AddMove(cc.FirstTransform, trnFactor,
+                            cc.SecondTransform, rotFactor);
                     }
                 }
             } catch (Exception e) {
