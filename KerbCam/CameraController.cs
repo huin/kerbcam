@@ -21,18 +21,23 @@ namespace KerbCam {
         private Client curClient = null;
         private Transform relativeTrn = null;
 
+        private DestructionProxy destructionProxy = null;
+
         public void OnDestroy() {
             Debug.LogWarning("KerbCam.CameraController was destroyed");
+
+            // If this happens mitigate badness. FlightCamera - save yourself!
+            StopControlling();
         }
 
         public CameraController() {
+            ReplaceProxy();
             UpdateTransformReferences();
 
             // TODO: Consider how to schedule reacquisition of the flight camera when
             // switching to the flight view. E.g when switching map view -> flight view,
             // the flight camera updates are reactivated, which makes the camera jerk
             // around while KerbCam is in control.
-
             // TODO: See if we can retain camera position if we're relative to a vessel that is destroyed.
             GameEvents.onGameSceneLoadRequested.Add(delegate(GameScenes s) {
                 try {
@@ -49,8 +54,6 @@ namespace KerbCam {
             GameEvents.onVesselChange.Add(delegate(Vessel v) {
                 try {
                     // Vessel selection changed, update references as necessary.
-                    UpdateTransformReferences();
-
                     ReacquireFlightCamera();
                     // We need to re-acquire the flight camera at the end of the frame as
                     // well (it looks like the transform parent gets reset after this
@@ -60,6 +63,26 @@ namespace KerbCam {
                     DebugUtil.LogException(e);
                 }
             });
+        }
+
+        private void ReplaceProxy() {
+            if (destructionProxy != null) {
+                destructionProxy.onDestroy -= this.OnProxyDestroyed;
+            }
+            GameObject obj = new GameObject("KerbCam.CameraController DestructionProxy");
+            destructionProxy = obj.AddComponent<DestructionProxy>();
+            destructionProxy.onDestroy += OnProxyDestroyed;
+            TransformState.MoveToParent(transform, destructionProxy.transform);
+        }
+
+        private void OnProxyDestroyed(DestructionProxy p) {
+            if (object.ReferenceEquals(p, destructionProxy)) {
+                ReplaceProxy();
+                // The destruction of the proxy probably indicates that the
+                // relative object has been destroyed. Reparent to default.
+                relativeTrn = null;
+                UpdateTransformReferences();
+            }
         }
 
         private IEnumerator DeferredReacquireFlightCamera() {
@@ -109,10 +132,9 @@ namespace KerbCam {
             } else {
                 newParent = relativeTrn;
             }
-            TransformState.MoveToParent(transform, newParent);
-            transform.localPosition = Vector3.zero;
-            transform.localRotation = Quaternion.identity;
-            transform.localScale = Vector3.one;
+            TransformState.MoveToParent(destructionProxy.transform, newParent);
+            TransformState.ResetTransformToIdentity(destructionProxy.transform);
+            TransformState.ResetTransformToIdentity(transform);
 
             // For FlightCamera, the second transform is that for the FlightCamera itself.
             secondTrn = new TransformState(FlightCamera.fetch.transform);
@@ -138,6 +160,8 @@ namespace KerbCam {
             }
 
             FlightCamera.fetch.DeactivateUpdate();
+
+            UpdateTransformReferences();
 
             // Store the first and second transform states, for when we release the camera.
             firstTrn.Store();
