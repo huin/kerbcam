@@ -452,7 +452,6 @@ namespace KerbCam {
     }
 
     class ObjectSelectionWindow : BaseWindow {
-        private Vector2 hierarchyListScroll = new Vector2();
         private WindowResizer resizer;
         private bool picking = false;
 
@@ -489,26 +488,20 @@ namespace KerbCam {
 
                 Transform relTrn = State.camControl.RelativeTrn;
 
+                bool matchedRelTrn = false;
                 if (GUILayout.Toggle(relTrn == null, "Active vessel")) {
+                    relTrn = null;
+                    matchedRelTrn = true;
+                }
+                GUILayout.BeginHorizontal(); // BEGIN picked object
+                if (!GUILayout.Toggle(!matchedRelTrn, relTrn==null?"":relTrn.name)) {
                     relTrn = null;
                 }
                 if (GUILayout.Button(Picking ? "Cancel Pick" : "Pick Object")) {
                     Picking = !Picking;
                 }
-                if (State.relativeObject != null) {
-                    GUILayout.Label("Hierarchy:");
-                    hierarchyListScroll = GUILayout.BeginScrollView(hierarchyListScroll); // BEGIN vessel list scroller
-                    GUILayout.BeginVertical(); // BEGIN vessel list
-                    for (Transform trn = State.relativeObject.transform; trn != null; trn = trn.parent) {
-                        if (GUILayout.Toggle(object.ReferenceEquals(trn, relTrn), trn.name)) {
-                            relTrn = trn;
-                        }
-                    }
-                    GUILayout.EndVertical(); // END vessel list
-                    GUILayout.EndScrollView(); // END vessel list scroller
-                } else {
-                    GUILayout.FlexibleSpace();
-                }
+                GUILayout.EndHorizontal(); // END picked object
+                GUILayout.FlexibleSpace();
 
                 State.camControl.RelativeTrn = relTrn;
 
