@@ -52,5 +52,11 @@ namespace KerbCam {
             toMove.parent = newParent;
             state.Revert();
         }
+
+        public static void ResetTransformToIdentity(Transform trn) {
+            trn.localPosition = Vector3.zero;
+            trn.localRotation = Quaternion.identity;
+            trn.localScale = Vector3.one;
+        }
     }
 }

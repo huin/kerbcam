@@ -39,6 +39,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.cs" />
+    <Compile Include="DestructionProxy.cs" />
     <Compile Include="ManualCameraControlGUI.cs" />
     <Compile Include="CameraController.cs" />
     <Compile Include="ConfigUtil.cs" />
