@@ -46,7 +46,7 @@ namespace KerbCam {
                     StopControlling();
                     // Remove the CameraController from the hierarchy,
                     // otherwise it'll be destroyed.
-                    transform.parent = null;
+                    destructionProxy.transform.parent = null;
                 } catch (Exception e) {
                     DebugUtil.LogException(e);
                 }
