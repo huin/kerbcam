@@ -191,8 +191,8 @@ namespace KerbCam {
 
         private void LoseClient() {
             Client c = curClient;
-            // Prevent infinite recursion in case the client calls StartControlling StopControlling
-            // again.
+            // Prevent infinite recursion in case the client calls StartControlling
+            // or StopControlling again.
             curClient = null;
             c.LoseController();
         }
