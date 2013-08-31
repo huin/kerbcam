@@ -21,9 +21,19 @@ namespace KerbCam {
         public void Update() {
             Event ev = Event.current;
             if (onPicked != null && ev.isMouse && ev.clickCount == 1 && ev.button == 0) {
-                RaycastHit hitInfo = new RaycastHit();
-                if (Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out hitInfo)) {
-                    onPicked(hitInfo.collider);
+                RaycastHit[] hits = Physics.RaycastAll(Camera.main.ScreenPointToRay(Input.mousePosition));
+
+                Collider nearest = null;
+                float nearestDist = float.MaxValue;
+
+                for (int i = 0; i < hits.Length; i++) {
+                    if (nearest == null || hits[i].distance < nearestDist) {
+                        nearest = hits[i].collider;
+                    }
+                }
+
+                if (nearest != null) {
+                    onPicked(nearest);
                 }
             }
         }
