@@ -108,6 +108,8 @@ namespace KerbCam {
         KEY_ROT_LEFT,
         KEY_ROT_RIGHT,
         KEY_ROT_DOWN,
+        // TODO: Keybindings for increase/decrease translation/rotation rate.
+        // TODO: Keybinding for toggling camera control.
         KEY_DEBUG,
     }
 
