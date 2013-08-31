@@ -456,6 +456,7 @@ namespace KerbCam {
     class ObjectSelectionWindow : BaseWindow {
         private WindowResizer resizer;
         private bool picking = false;
+        private Vector2 vesselListScroll;
 
         private bool Picking {
             get { return picking; }
@@ -473,6 +474,7 @@ namespace KerbCam {
             resizer = new WindowResizer(
                 new Rect(50, 250, 250, 200),
                 new Vector2(200, 170));
+            vesselListScroll = Vector2.zero;
         }
 
         protected override void DrawGUI() {
@@ -490,20 +492,37 @@ namespace KerbCam {
 
                 Transform relTrn = State.camControl.RelativeTrn;
 
+                // matchedRelTrn keeps track of if a specific selection was found,
+                // so that the generic object picker at the end can be marked as
+                // "selected" when not selecting a general class of object.
                 bool matchedRelTrn = false;
+
                 if (GUILayout.Toggle(relTrn == null, "Active vessel")) {
                     relTrn = null;
                     matchedRelTrn = true;
                 }
-                GUILayout.BeginHorizontal(); // BEGIN picked object
-                if (!GUILayout.Toggle(!matchedRelTrn, relTrn==null?"":relTrn.name)) {
+
+                vesselListScroll = GUILayout.BeginScrollView(vesselListScroll); // BEGIN vessel list scroller
+                GUILayout.BeginVertical(); // BEGIN vessel list
+                foreach (Vessel v in FlightGlobals.Vessels) {
+                    bool isSelected = object.ReferenceEquals(relTrn, v.transform);
+                    matchedRelTrn = matchedRelTrn || isSelected;
+                    if (GUILayout.Toggle(isSelected, v.name)) {
+                        relTrn = v.transform;
+                    }
+                }
+                GUILayout.FlexibleSpace();
+                GUILayout.EndVertical(); // END vessel list
+                GUILayout.EndScrollView(); // END vessel list scroller
+
+                bool wasPicked = relTrn != null && !matchedRelTrn;
+                bool isPicked = GUILayout.Toggle(wasPicked, wasPicked ? relTrn.name : "(nothing picked)");
+                if (wasPicked && !isPicked) {
                     relTrn = null;
                 }
                 if (GUILayout.Button(Picking ? "Cancel Pick" : "Pick Object")) {
                     Picking = !Picking;
                 }
-                GUILayout.EndHorizontal(); // END picked object
-                GUILayout.FlexibleSpace();
 
                 State.camControl.RelativeTrn = relTrn;
 
