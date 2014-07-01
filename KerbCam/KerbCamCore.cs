@@ -171,7 +171,12 @@ namespace KerbCam {
 
         public static void LoadConfig() {
             ConfigNode config;
-            config = ConfigNode.Load("kerbcam.cfg");
+            try {
+                config = ConfigNode.Load("kerbcam.cfg");
+            } catch (NullReferenceException) {
+                Debug.LogWarning("KerbCam encountered NRE while loading kerbcam.cfg - file corrupted?");
+                return;
+            }
             if (config == null) {
                 Debug.LogWarning("KerbCam could not load its configuration. This is okay if one has not been saved yet.");
                 return;
@@ -191,7 +196,12 @@ namespace KerbCam {
 
         public static void LoadPaths() {
             ConfigNode config;
-            config = ConfigNode.Load("kerbcam-paths.cfg");
+            try {
+                config = ConfigNode.Load("kerbcam-paths.cfg");
+            } catch (NullReferenceException) {
+                Debug.LogWarning("KerbCam encountered NRE while loading kerbcam-paths.cfg - file corrupted?");
+                return;
+            }
             if (config == null) {
                 Debug.LogWarning(
                     "KerbCam could not load paths. This is okay if " +
