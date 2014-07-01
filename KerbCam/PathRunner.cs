@@ -92,16 +92,20 @@ namespace KerbCam {
 
                 if (!isPaused) {
                     curTime += Time.deltaTime;
+                    DebugUtil.Log("Time.deltaTime={0} curTime={1}",
+                        Time.deltaTime, curTime);
+                    if (curTime >= path.MaxTime)
+                    {
+                        // Pause at the end of the path.
+                        isPaused = true;
+                        curTime = path.MaxTime;
+                    }
                 }
 
                 path.UpdateTransform(
                     State.camControl.FirstTransform,
                     State.camControl.SecondTransform,
                     curTime);
-                if (!isPaused && curTime >= path.MaxTime) {
-                    // Pause at the end of the path.
-                    isPaused = true;
-                }
             } catch (Exception e) {
                 DebugUtil.LogException(e);
             }
