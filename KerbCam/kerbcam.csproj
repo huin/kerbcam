@@ -54,6 +54,7 @@
     <Compile Include="GUIHelper.cs" />
     <Compile Include="Interpolator.cs" />
     <Compile Include="SplineUtil.cs" />
+    <Compile Include="ToolbarWrapper.cs" />
     <Compile Include="TransformState.cs" />
   </ItemGroup>
   <ItemGroup>

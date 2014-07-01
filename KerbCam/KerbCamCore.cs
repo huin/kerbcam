@@ -5,20 +5,19 @@ using UnityEngine;
 
 namespace KerbCam {
 
-    // Class purely for the purpose for injecting the plugin.
-    // Plugin startup taken from:
-    // http://forum.kerbalspaceprogram.com/showthread.php/43027
-    public class Bootstrap : KSP.Testing.UnitTest {
-        public Bootstrap() {
-            var gameObject = new GameObject("KerbCam", typeof(KerbCam));
-            UnityEngine.Object.DontDestroyOnLoad(gameObject);
-        }
-    }
-
     // Plugin behaviour class.
+    [KSPAddon(KSPAddon.Startup.Flight, false)]
     public class KerbCam : MonoBehaviour {
-        private bool shouldRun = false;
-        private bool initialized = false;
+
+        public void Awake() {
+            try {
+                C.Init();
+                State.Init();
+            } catch (Exception e) {
+                DebugUtil.LogException(e);
+                State.broken = true;
+            }
+        }
 
         private bool ShouldRun() {
             bool shouldRunNow =
@@ -27,40 +26,11 @@ namespace KerbCam {
                 && FlightGlobals.ActiveVessel != null
                 && HighLogic.LoadedScene == GameScenes.FLIGHT;
 
-            if (shouldRun != shouldRunNow) {
-                if (!shouldRunNow) {
-                    State.Stop();
-                } else {
-                    Init();
-                }
+            if (!shouldRunNow) {
+                State.Stop();
             }
 
-            shouldRun = shouldRunNow;
-            return shouldRun;
-        }
-
-        private void Init() {
-            if (initialized) {
-                return;
-            }
-            initialized = true;
-
-            try {
-                C.Init();
-                State.Init();
-
-                State.keyBindings.ListenKeyUp(BoundKey.KEY_DEBUG, HandleDebug);
-
-                State.LoadConfig();
-                State.LoadPaths();
-            } catch (Exception e) {
-                DebugUtil.LogException(e);
-                State.broken = true;
-            }
-        }
-
-        public void OnDestroy() {
-            Debug.LogWarning("KerbCam was destroyed");
+            return shouldRunNow;
         }
 
         public void OnGUI() {
@@ -79,15 +49,6 @@ namespace KerbCam {
                 State.Stop();
             } catch (Exception e) {
                 DebugUtil.LogException(e);
-            }
-        }
-
-        private void HandleDebug() {
-            if (State.developerMode) {
-                // Random bits of logging used by the developer to
-                // work out whatever the heck he's doing.
-                DebugUtil.LogCamerasTransformTree();
-                DebugUtil.LogVessel(FlightGlobals.ActiveVessel);
             }
         }
     }
@@ -160,6 +121,7 @@ namespace KerbCam {
 
             keyBindings.AddBinding(BoundKey.KEY_DEBUG,
                 new KeyBind("log debug data (developer mode only)"));
+            State.keyBindings.ListenKeyUp(BoundKey.KEY_DEBUG, HandleDebug);
 
             paths = new List<SimpleCamPath>();
             camControlObj = new GameObject("KerbCam.CameraController");
@@ -167,6 +129,18 @@ namespace KerbCam {
             camControl = camControlObj.AddComponent<CameraController>();
             manCamControl = ManualCameraControl.Create();
             mainWindow = new MainWindow();
+
+            LoadConfig();
+            LoadPaths();
+        }
+
+        private static void HandleDebug() {
+            if (State.developerMode) {
+                // Random bits of logging used by the developer to
+                // work out whatever the heck he's doing.
+                DebugUtil.LogCamerasTransformTree();
+                DebugUtil.LogVessel(FlightGlobals.ActiveVessel);
+            }
         }
 
         public static void LoadConfig() {
