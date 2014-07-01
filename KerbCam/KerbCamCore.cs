@@ -8,6 +8,24 @@ namespace KerbCam {
     // Plugin behaviour class.
     [KSPAddon(KSPAddon.Startup.Flight, false)]
     public class KerbCam : MonoBehaviour {
+        private IButton button;
+
+        internal KerbCam() {
+            button = ToolbarManager.Instance.add("KerbCam", "toggle");
+
+            button.Text = "KerbCam";
+            button.TexturePath = "KerbCam/icon";
+            button.ToolTip = "Toggle KerbCam window";
+            button.Enabled = true;
+            button.Visibility = new GameScenesVisibility(GameScenes.FLIGHT);
+            button.OnClick += (e) => {
+                State.mainWindow.ToggleWindow();
+            };
+        }
+
+        internal void OnDestroy() {
+            button.Destroy();
+        }
 
         public void Awake() {
             try {
@@ -97,7 +115,10 @@ namespace KerbCam {
             keyBindings = new KeyBindings<BoundKey>();
 
             keyBindings.AddBinding(BoundKey.KEY_TOGGLE_WINDOW,
-                new KeyBind("toggle KerbCam window", true, KeyCode.F8));
+                new KeyBind("toggle KerbCam window",
+                // Binding required if Toolbar isn't available.
+                    !ToolbarManager.ToolbarAvailable,
+                    KeyCode.F8));
 
             // Playback controls.
             keyBindings.AddBinding(BoundKey.KEY_PATH_TOGGLE_RUNNING,
