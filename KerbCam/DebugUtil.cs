@@ -83,14 +83,14 @@ namespace KerbCam {
                 // Only descend into descendents of transforms that are ancestors of
                 // cameras. This logs helpful context for camera transforms, without
                 // showing excessive internal model information.
-                int numChildTrns = trn.GetChildCount();
+                int numChildTrns = trn.childCount;
                 foreach (Transform child in trn) {
                     AppendCameraTransform(result, level + 1, child, trnCams, trnCamAncestors);
                 }
                 return;
             }
             
-            if (trn.GetChildCount() > 0) {
+            if (trn.childCount > 0) {
                 result.Append(" (descendents hidden)");
             }
             result.AppendLine();

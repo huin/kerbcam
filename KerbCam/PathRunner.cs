@@ -96,6 +96,7 @@ namespace KerbCam {
                 if (!isPaused) {
                     float dt = worldTime - lastSeenTime;
                     curTime += dt;
+                    DebugUtil.Log("curTime={0} dt={1}", curTime, dt);
                 }
                 lastSeenTime = worldTime;
 
