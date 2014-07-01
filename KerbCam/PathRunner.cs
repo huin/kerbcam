@@ -92,8 +92,7 @@ namespace KerbCam {
 
                 if (!isPaused) {
                     curTime += Time.deltaTime;
-                    DebugUtil.Log("Time.deltaTime={0} curTime={1}",
-                        Time.deltaTime, curTime);
+
                     if (curTime >= path.MaxTime)
                     {
                         // Pause at the end of the path.
