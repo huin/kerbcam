@@ -6,7 +6,6 @@ namespace KerbCam {
         // Running state variables.
         private bool isRunning = false;
         private bool isPaused = false;
-        private float lastSeenTime;
         private float curTime = 0.0F;
 
         private GameObject ownerObject;
@@ -59,7 +58,6 @@ namespace KerbCam {
             State.camControl.StartControlling(this);
             isRunning = true;
 
-            lastSeenTime = Time.realtimeSinceStartup;
             path.UpdateTransform(
                 State.camControl.FirstTransform,
                 State.camControl.SecondTransform,
@@ -92,13 +90,9 @@ namespace KerbCam {
                 if (!IsRunning)
                     return;
 
-                float worldTime = Time.realtimeSinceStartup;
                 if (!isPaused) {
-                    float dt = worldTime - lastSeenTime;
-                    curTime += dt;
-                    DebugUtil.Log("curTime={0} dt={1}", curTime, dt);
+                    curTime += Time.deltaTime;
                 }
-                lastSeenTime = worldTime;
 
                 path.UpdateTransform(
                     State.camControl.FirstTransform,
